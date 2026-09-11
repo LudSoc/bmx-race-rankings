@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234a7ab5'/><text x='16' y='23' font-family='system-ui' font-size='20' font-weight='800' fill='white' text-anchor='middle'>C</text></svg>">
 <title>Classements Pilotes BMX — Sqorz Hub</title>
-<meta name="description" content="Classement national des pilotes BMX Race par indice de performance : qui domine le plus sa concurrence, par catégorie et par club.">
+<meta name="description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ludsoc.github.io/sqorz-rankings/">
 <meta property="og:title" content="Classements Pilotes BMX — Sqorz Hub">
-<meta property="og:description" content="Classement national des pilotes BMX Race par indice de performance : qui domine le plus sa concurrence, par catégorie et par club.">
+<meta property="og:description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Classements Pilotes BMX — Sqorz Hub">
-<meta name="twitter:description" content="Classement national des pilotes BMX Race par indice de performance : qui domine le plus sa concurrence, par catégorie et par club.">
+<meta name="twitter:description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <script>
   (() => {
     const saved = localStorage.getItem('theme');
@@ -62,6 +62,11 @@ body{
   font-size:17px; cursor:pointer;
 }
 .theme-btn:hover{background:rgba(255,255,255,.3)}
+.donate-btn{display:inline-flex;align-items:center;gap:5px;padding:0 12px;height:36px;background:linear-gradient(135deg,rgba(255,210,150,.9),rgba(251,146,60,.75));border:1px solid rgba(251,146,60,.6);color:#7c3405;box-shadow:0 2px 8px rgba(251,146,60,.35),inset 0 1px 0 rgba(255,255,255,.3);border-radius:10px;font-size:.8rem;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s,transform .15s;white-space:nowrap}
+.donate-btn:hover{background:linear-gradient(135deg,rgba(255,210,150,1),rgba(251,146,60,.95));border-color:rgba(251,146,60,.9);box-shadow:0 3px 10px rgba(251,146,60,.45),inset 0 1px 0 rgba(255,255,255,.3);}
+.donate-btn:active{transform:scale(.95)}
+.donate-icon{font-size:1.15rem;display:inline-flex;align-items:center}
+@media(max-width:520px){.donate-btn .donate-label{display:none}}
 .topbar h1{font-size:34px; font-weight:800; letter-spacing:-.5px; margin:26px 0 6px}
 .topbar p{margin:0; font-size:14.5px; color:rgba(255,255,255,.88); max-width:640px; line-height:1.5}
 .hub-back{
@@ -91,6 +96,16 @@ main{max-width:1180px; margin:-88px auto 0; padding:0 24px 48px; position:relati
   padding:9px 12px; min-width:0;
 }
 input.control{width:200px; max-width:100%}
+.qwrap{position:relative; width:200px; max-width:100%}
+.qwrap input.control{width:100%}
+.sugg{
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:5;
+  background:var(--card); border:1px solid var(--line-strong); border-radius:10px;
+  box-shadow:var(--shadow); max-height:280px; overflow-y:auto;
+}
+.sugg-item{display:flex; justify-content:space-between; gap:8px; align-items:baseline; padding:8px 12px; font-size:13px; cursor:pointer}
+.sugg-item small{color:var(--muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sugg-item.active{background:var(--accent-soft)}
 select.control{cursor:pointer}
 .btn{
   font:inherit; font-size:13px; font-weight:700; cursor:pointer;
@@ -124,6 +139,12 @@ select.control{cursor:pointer}
 .ranking-table tbody tr:nth-child(even) td{background:color-mix(in srgb, var(--card-soft) 70%, transparent)}
 .ranking-table tbody tr:hover td{background:var(--accent-soft)}
 .rank-num{font-weight:800; color:var(--accent-hi)}
+.rank-global{font-size:11px; font-weight:400; color:var(--muted); margin-left:4px; white-space:nowrap}
+.mixte{font-size:11px; color:var(--accent-hi); margin-left:4px; cursor:help; white-space:nowrap}
+tr.pilot-hit td{background:var(--accent-soft)}
+tr.pilot-hit td:first-child{box-shadow:inset 3px 0 0 var(--accent-hi)}
+tr.pilot-hit .pilot-link{color:var(--accent)}
+#pilotHit{scroll-margin-top:80px}
 .pilot-link{font-weight:600; color:var(--ink); text-decoration:none}
 .pilot-link:hover{color:var(--accent); text-decoration:underline}
 .club-link{font-size:12px; color:var(--muted); text-decoration:none}
@@ -159,12 +180,21 @@ footer a:hover{text-decoration:underline}
 <div class="topbar">
   <div class="topbar-inner">
     <div class="brand-row">
-      <div class="brand"><span class="logo" aria-hidden="true">🏆</span> Sqorz · Classements</div>
+      <div class="brand"><span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+        <path d="M4 22h16"/>
+        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+      </svg></span> Sqorz · Classements</div>
+      <div style="display:flex; gap:8px; align-items:center">
+      <a href="https://ko-fi.com/sqorz_tools" target="_blank" rel="noopener noreferrer" class="donate-btn" title="Soutenir le projet sur Ko-fi"><span class="donate-icon">☕</span><span class="donate-label">Soutenir</span></a>
       <button type="button" id="themeBtn" class="theme-btn" aria-label="Changer le thème" title="Changer le thème (auto / clair / sombre)"></button>
+      </div>
     </div>
     <h1>Classements pilotes</h1>
-    <p>Qui domine le plus sa concurrence : indice de performance sur les 365 derniers jours, ajusté de la force des plateaux. Pas une valeur absolue — un mid-pack Élite battrait un top U11.</p>
-    <p id="windowLine" style="margin-top:6px; font-size:12.5px; opacity:.85"></p>
+    <p>Les pilotes français qui dominent le plus leurs courses sur les 12 derniers mois — France, Coupes d'Europe et Mondiaux — notés de 0 à 1000 selon la force de leurs plateaux. Pas une valeur absolue : un jeune qui écrase sa catégorie devance un Élite irrégulier.</p>
     <a class="hub-back" id="hubBackLink" href="#" aria-label="Retour au Sqorz Hub">← Sqorz Hub</a>
   </div>
 </div>
@@ -175,11 +205,40 @@ footer a:hover{text-decoration:underline}
     <div class="filters">
       <div class="field">
         <label for="qInp">Pilote</label>
-        <input class="control" id="qInp" type="text" placeholder="Nom…" autocomplete="off">
+        <div class="qwrap">
+          <input class="control" id="qInp" type="text" placeholder="Nom… (Entrée = localiser)" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="qSugg" aria-autocomplete="list">
+          <div class="sugg" id="qSugg" role="listbox" aria-label="Pilotes correspondants" hidden></div>
+        </div>
       </div>
       <div class="field">
         <label for="catSel">Catégorie</label>
         <select class="control" id="catSel"><option value="">Toutes</option></select>
+      </div>
+      <div class="field">
+        <label for="sexeSel">Sexe</label>
+        <select class="control" id="sexeSel">
+          <option value="">Tous</option>
+          <option value="F">Filles &amp; femmes</option>
+          <option value="H">Garçons &amp; hommes</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ageSel">Âge</label>
+        <select class="control" id="ageSel">
+          <option value="">Tous</option>
+          <option value="6-">6 ans et moins</option>
+          <option value="7">7 ans</option>
+          <option value="8">8 ans</option>
+          <option value="9">9 ans</option>
+          <option value="10">10 ans</option>
+          <option value="11">11 ans</option>
+          <option value="12">12 ans</option>
+          <option value="13">13 ans</option>
+          <option value="14">14 ans</option>
+          <option value="15">15 ans</option>
+          <option value="16">16 ans</option>
+          <option value="17+">17 ans et plus</option>
+        </select>
       </div>
       <div class="field">
         <label for="clubInp">Club</label>
@@ -196,9 +255,10 @@ footer a:hover{text-decoration:underline}
 
   <div class="card">
     <details class="perf-how">
-      <summary>ℹ️ Comment est calculé ce classement ? (30 s)</summary>
+      <summary>ℹ️ Comment est calculé ce classement ?</summary>
       <div class="perf-how-body">
-        <p>Chaque pilote est noté de 0 à 1000 par son <strong>indice de performance</strong> : places ajustées de la taille et de la force des plateaux, régularité, chronos, le tout ramené vers 500 quand il y a peu de courses. Seules les <strong>courses</strong> comptent (pas les classements de championnats).</p>
+        <p>Chaque pilote est noté de 0 à 1000 par son <strong>indice de performance</strong> : places ajustées de la taille et de la force des plateaux, régularité, chronos, le tout ramené vers 500 quand il y a peu de courses. Seules les <strong>courses</strong> comptent (pas les classements de championnats), <strong>toutes sources</strong> : France (Sqorz), Coupes et Championnats d'Europe UEC (JSTiming) et Mondiaux UCI. Le pool est français (licenciés en club : un groupement club en course FR — les étrangers, même vus en France, sont exclus), mais <strong>toutes</strong> les courses de ces pilotes comptent, en France comme à l'international.</p>
+        <p>L'<strong>âge</strong> est l'âge sportif réel (année de saison − année de naissance déduite des engagements) : un garçon de 11 ans qui roule en U13 sort bien dans « 11 ans ». Le <strong>sexe</strong> se lit sur la catégorie dominante (les catégories mixtes sont masquées quand un sexe est choisi). Un pilote qui roule en 20″ et en cruiser est signalé par un badge ⇄. Le <strong>#</strong> est le rang dans le filtre actif, avec le rang général rappelé en petit (référence : seuil d'engagements min, sans les autres filtres — aucun rappel dans la vue par défaut).</p>
         <p>Détail complet des coefficients : voir la fiche d'un pilote sur <a id="perfHelpLink" href="#">Stats Pilote</a>, encadré « Comment est-il calculé ? ».</p>
       </div>
     </details>
@@ -211,7 +271,7 @@ footer a:hover{text-decoration:underline}
 </main>
 
 <footer>
-  <span>Données issues de <a href="https://our.sqorz.com/orgs" target="_blank" rel="noopener noreferrer">Sqorz</a></span>
+  <span>Données issues de <a href="https://our.sqorz.com/orgs" target="_blank" rel="noopener noreferrer">Sqorz</a> et <a href="https://www.jstiming.nl" target="_blank" rel="noopener noreferrer">JSTiming</a> (Coupes/Championnats d'Europe)</span>
   <span class="footer-sep">·</span>
   <span>© <span id="footerYear"></span></span>
   <span class="footer-sep">·</span>
@@ -231,6 +291,11 @@ footer a:hover{text-decoration:underline}
   function normStr(s) {
     return (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
+  // ISO AAAA-MM-JJ → JJ/MM/AAAA (découpage direct, jamais de Date : pas de décalage de fuseau).
+  function isoFr(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso || '—');
+  }
   function clubKey(s) {
     return normStr(s);
   }
@@ -248,16 +313,99 @@ footer a:hover{text-decoration:underline}
   const pilotUrl = name => SQORZ_STATS_BASE + '?name=' + encodeURIComponent(name);
   const clubUrl = key => CLUB_BASE + '?club=' + encodeURIComponent(clubKey(key));
 
+  // --- Sexe déduit de la catégorie dominante (cat + légende cats, FR + EN car UEC/UCI) ---
+  // sexe: 'F' (fille/femme), 'H' (garçon/homme), 'X' (mixte : U7/U9/… sans genre, cruisers mixtes, masters).
+  // Le libellé tranche d'abord (ex. Girls 15 ≠ Garçon 15) ; les codes UEC (B/M/W) en repli.
+  // Les catégories mixtes sont exclues dès qu'un sexe est choisi (sexe du pilote inconnu, seule sa cat. domine).
+  function catSexe(code, label) {
+    const lab = (label || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const hasF = lab.includes('FILLE') || lab.includes('FEMME')
+      || /\bGIRLS?\b|\bWOMEN\b|\bFEMALE\b/.test(lab);
+    const hasH = lab.includes('GARCON') || lab.includes('HOMME')
+      || /\bBOYS?\b|\bMEN\b|\bMALE\b/.test(lab);
+    if (hasF && hasH) return 'X';
+    if (hasF) return 'F';
+    if (hasH) return 'H';
+    const c = (code || '').toUpperCase().trim();
+    if (c === 'EF' || c === 'JF') return 'F';
+    if (c === 'EH' || c === 'JH') return 'H';
+    if (c.startsWith('CRF')) return 'F';
+    if (c.startsWith('CRH')) return 'H';
+    if (lab.includes('CRUISER')) return 'X';
+    if (c.startsWith('F') || c.endsWith('FR') || c.endsWith('F')) {
+      if (!c.includes('H') || c.startsWith('F')) return 'F';
+    }
+    if (/^B\d/.test(c) || /^M[EUJ]/.test(c)) return 'H'; // UEC : Boys / Men (aucun code FR en B/M…/W…)
+    if (c.startsWith('W')) return 'F'; // UEC : Women
+    if (c.startsWith('G') || c.startsWith('H') || c.endsWith('GR') || c.endsWith('GNR') || c.endsWith('HR') || c.endsWith('H') || c === 'JH' || c === 'EH') return 'H';
+    return 'X';
+  }
+
+  // Cruiser ou pas, d'après le code + libellé (même règle que le build).
+  function isCruiserCat(code, label) {
+    const c = (code || '').toUpperCase().trim();
+    const lab = (label || '').toUpperCase();
+    return lab.includes('CRUISER') || c.startsWith('CR');
+  }
+
+  function catInfo(code, label) {
+    return { sexe: catSexe(code, label), cruiser: isCruiserCat(code, label) };
+  }
+
+  // Âge sportif réel : année de saison − année de naissance (champ `by` du build).
+  // Sans `by` (données anciennes), le pilote est exclu dès qu'un âge est choisi.
+  function pilotAge(r, seasonYear) {
+    if (r == null || r.by == null || !seasonYear) return null;
+    return seasonYear - r.by;
+  }
+
+  function matchPilotAge(a, sel) {
+    if (!sel) return true;
+    if (typeof a !== 'number' || !Number.isFinite(a)) return false;
+    if (sel === '17+') return a >= 17;
+    if (sel === '6-') return a <= 6;
+    return a === parseInt(sel, 10);
+  }
+
+  // --- Suggestions de pilotes (testable) : au plus `limit` lignes contenant q,
+  // dans l'ordre du tableau (classement). Servent à choisir un pilote au clic/clavier.
+  function pilotSuggestions(rows, q, limit = 8) {
+    const needle = normStr(q);
+    if (!needle) return [];
+    const out = [];
+    for (const r of rows) {
+      if (normStr(r.n).includes(needle)) {
+        out.push(r);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
+
+  // --- Localisation pilote (testable) : ne filtre PAS, renvoie les indices des
+  // lignes dont le nom contient q (sous-chaîne, insensible accents/casse).
+  function locateHits(rows, q) {
+    const needle = normStr(q);
+    if (!needle) return [];
+    const out = [];
+    rows.forEach((r, i) => { if (normStr(r.n).includes(needle)) out.push(i); });
+    return out;
+  }
+
   // --- Filtrage pur (testable) ---
-  // rows: [{n, club, cat, e, score}], f: {q, cat, clubQ, min, favKeys:Set|null}
+  // rows: [{n, club, cat, e, score, cr?, by?}], f: {q ignoré (localisation, voir locateHits), cat, clubQ, min, sexe, age, seasonYear, favKeys:Set|null, catInfoOf(code)->{sexe,cruiser}|null}
+  // Âge = âge sportif réel (by), sexe = catégorie dominante.
   function applyFilters(rows, f) {
-    const q = normStr(f.q);
     const cq = normStr(f.clubQ);
     return rows.filter(r => {
       if (r.e < f.min) return false;
       if (f.cat && r.cat !== f.cat) return false;
+      if (f.sexe) {
+        const info = f.catInfoOf ? f.catInfoOf(r.cat) : null;
+        if (!info || info.sexe !== f.sexe) return false;
+      }
+      if (f.age && !matchPilotAge(pilotAge(r, f.seasonYear), f.age)) return false;
       if (f.favKeys && !f.favKeys.has(normStr(r.n))) return false;
-      if (q && !normStr(r.n).includes(q)) return false;
       if (cq && !(clubKey(r.club).includes(cq) || normStr(f.clubNameOf ? f.clubNameOf(r.club) : '').includes(cq))) return false;
       return true;
     });
@@ -274,6 +422,11 @@ footer a:hover{text-decoration:underline}
     return map;
   }
 
+  // Ordinal français : 1er, 2e, 45e…
+  function rankFmt(n) {
+    return n === 1 ? '1er' : n + 'e';
+  }
+
   function trendLabel(t) {
     if (t === 'N') return '<span class="t-new" title="Entrant au classement">N</span>';
     if (typeof t !== 'number' || !t) return '<span class="t-same" title="Stable">•</span>';
@@ -284,14 +437,20 @@ footer a:hover{text-decoration:underline}
   // --- État ---
   let DATA = null;      // { _meta, cats, rows }
   let CLUBS = {};       // CODE -> {name, city}
-  let rankOf = new Map();
   let shown = 100;
   const PAGE = 100;
-  const state = { q: '', cat: '', clubQ: '', min: 5, favOnly: false };
+  const state = { q: '', cat: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false };
+  let pendingScroll = false; // Entrée (ou ?q= au chargement) : sauter à la correspondance
+  let hitCursor = 0;         // Entrées successives : occurrence suivante
 
   const statusEl = document.getElementById('status');
   const qInp = document.getElementById('qInp');
+  const qSugg = document.getElementById('qSugg');
+  let suggList = [];
+  let suggIdx = -1;
   const catSel = document.getElementById('catSel');
+  const sexeSel = document.getElementById('sexeSel');
+  const ageSel = document.getElementById('ageSel');
   const clubInp = document.getElementById('clubInp');
   const minSel = document.getElementById('minSel');
   const favBtn = document.getElementById('favBtn');
@@ -304,10 +463,46 @@ footer a:hover{text-decoration:underline}
     statusEl.textContent = msg || '';
   }
 
+  function closeSugg() {
+    qSugg.hidden = true;
+    qInp.setAttribute('aria-expanded', 'false');
+    qInp.removeAttribute('aria-activedescendant');
+    suggIdx = -1;
+  }
+  function paintSuggActive() {
+    qSugg.querySelectorAll('.sugg-item').forEach((el, i) =>
+      el.classList.toggle('active', i === suggIdx));
+    if (suggIdx >= 0) qInp.setAttribute('aria-activedescendant', 'qsugg-' + suggIdx);
+    else qInp.removeAttribute('aria-activedescendant');
+  }
+  function openSugg() {
+    if (!DATA) { closeSugg(); return; }
+    suggList = pilotSuggestions(filtered(), qInp.value);
+    if (!suggList.length) { closeSugg(); return; }
+    suggIdx = -1;
+    qSugg.innerHTML = suggList.map((r, i) => {
+      const meta = [r.club || '', (DATA.cats || {})[r.cat] || r.cat || ''].filter(Boolean).join(' · ');
+      return `<div class="sugg-item" id="qsugg-${i}" role="option" aria-selected="false" data-i="${i}"><span>${escape(r.n)}</span>${meta ? `<small>${escape(meta)}</small>` : ''}</div>`;
+    }).join('');
+    qSugg.hidden = false;
+    qInp.setAttribute('aria-expanded', 'true');
+  }
+  function pickSugg(i) {
+    const r = suggList[i];
+    if (!r) return;
+    closeSugg();
+    qInp.value = r.n;
+    readInputs(); pushUrlState();
+    hitCursor = 0; pendingScroll = true; render();
+  }
+
   function parseUrlState() {
     const p = new URLSearchParams(location.search);
+    const sexe = p.get('sexe') === 'F' || p.get('sexe') === 'H' ? p.get('sexe') : '';
+    const ageRaw = p.get('age') || '';
+    const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17+'].includes(ageRaw) ? ageRaw : '';
     return {
-      q: p.get('q') || '', cat: p.get('cat') || '', clubQ: p.get('club') || '',
+      q: p.get('q') || '', cat: p.get('cat') || '', sexe, age, clubQ: p.get('club') || '',
       min: Math.min(20, Math.max(3, parseInt(p.get('min') || '5', 10) || 5)),
       favOnly: p.get('fav') === '1',
     };
@@ -315,7 +510,8 @@ footer a:hover{text-decoration:underline}
   function pushUrlState() {
     const u = new URL(location.href);
     const set = (k, v, dflt) => { (v && v !== dflt) ? u.searchParams.set(k, v) : u.searchParams.delete(k); };
-    set('q', state.q.trim(), ''); set('cat', state.cat, ''); set('club', state.clubQ.trim(), '');
+    set('q', state.q.trim(), ''); set('cat', state.cat, ''); set('sexe', state.sexe, ''); set('age', state.age, '');
+    set('club', state.clubQ.trim(), '');
     set('min', String(state.min), '5');
     state.favOnly ? u.searchParams.set('fav', '1') : u.searchParams.delete('fav');
     history.replaceState(null, '', u.pathname + (u.search || ''));
@@ -334,53 +530,108 @@ footer a:hover{text-decoration:underline}
   }
 
   function filtered() {
-    return applyFilters(DATA.rows, {
-      q: state.q, cat: state.cat, clubQ: state.clubQ, min: state.min,
+    return applyFilters(DATA.rows, filterArgs());
+  }
+  // Référence du rappel gris : mêmes lignes avec le seul seuil d'engagements
+  // (pas de catégorie/sexe/âge/club/suivis). Par défaut (min 5, aucun filtre),
+  // vue et référence coïncident → aucun chiffre gris.
+  function filterArgs(over) {
+    const cats = (DATA && DATA.cats) || {};
+    return Object.assign({
+      q: state.q, cat: state.cat, sexe: state.sexe, age: state.age,
+      seasonYear: parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null,
+      clubQ: state.clubQ, min: state.min,
       favKeys: state.favOnly ? favKeys() : null,
       clubNameOf,
-    });
+      catInfoOf: code => catInfo(code, cats[code] || ''),
+    }, over);
   }
 
   function render() {
     if (!DATA) return;
+    if (!qSugg.hidden) openSugg(); // suggestions suivent les autres filtres
     const rows = filtered();
+    const seasonYear = parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null;
+    const hits = locateHits(rows, state.q);
+    const hitSet = new Set(hits);
+    let target = -1;
+    if (hits.length) {
+      target = hits[hitCursor % hits.length];
+      if (target + 1 > shown) shown = target + 1; // la liste s'étend jusqu'au pilote visé
+    }
     const list = rows.slice(0, shown);
+    const franks = stdRanks(rows); // rang dans le filtre actif (les lignes filtrées gardent l'ordre trié)
+    const refRanks = stdRanks(applyFilters(DATA.rows,
+      filterArgs({ cat: '', sexe: '', age: '', clubQ: '', favKeys: null })));
     if (!list.length) {
       tableWrap.innerHTML = `<div class="empty-state">Aucun pilote pour ces filtres. <button class="btn btn-ghost" id="emptyReset" type="button">Réinitialiser</button></div>`;
       const b = document.getElementById('emptyReset');
       if (b) b.addEventListener('click', resetFilters);
     } else {
       tableWrap.innerHTML = `<div class="table-scroll"><table class="ranking-table">
-        <thead><tr><th>#</th><th>Pilote</th><th>Club</th><th>Cat.</th><th title="Engagements sur la fenêtre">Eng.</th><th title="Indice de performance">Indice</th><th title="Évolution vs semaine précédente">Tend.</th></tr></thead>
-        <tbody>${list.map(r => `<tr>
-          <td><span class="rank-num">${rankOf.get(r.n) ?? '—'}</span></td>
-          <td><a class="pilot-link" href="${pilotUrl(r.n)}">${escape(r.n)}</a></td>
+        <thead><tr><th title="Rang dans le filtre actif (rang général rappelé en petit quand il diffère)">#</th><th>Pilote</th><th>Club</th><th title="Âge sportif sur la saison (année de saison − année de naissance)">Âge</th><th title="Engagements sur la fenêtre">Eng.</th><th title="Indice de performance">Indice</th><th title="Évolution vs semaine précédente">Tend.</th></tr></thead>
+        <tbody>${list.map((r, i) => {
+          const fr = franks.get(r.n);
+          const gr = refRanks.get(r.n);
+          const sub = (typeof fr === 'number' && typeof gr === 'number' && fr !== gr)
+            ? `<span class="rank-global" title="Rang général (seuil d'engagements seul, sans les autres filtres)">${rankFmt(gr)}</span>` : '';
+          const ci = catInfo(r.cat, (DATA.cats || {})[r.cat] || '');
+          const isMixed = (r.cr || 0) > 0 && (r.cr || 0) < r.e;
+          const mixSub = isMixed
+            ? `<span class="mixte" title="${ci.cruiser ? 'Roule aussi en 20 pouces' : 'Roule aussi en cruiser'}">⇄</span>` : '';
+          const age = pilotAge(r, seasonYear);
+          const ageCell = age != null
+            ? `${age} <span style="color:var(--muted); font-size:11px">ans</span>` : '—';
+          const ageTitle = age != null && r.by != null ? `Né${ci.sexe === 'F' ? 'e' : ''} en ${r.by}` : 'Âge inconnu';
+          const hit = hitSet.has(i) ? ' class="pilot-hit"' : '';
+          const anchor = i === target ? ' id="pilotHit"' : '';
+          return `<tr${anchor}${hit}>
+          <td><span class="rank-num" title="Rang dans le filtre actif">${fr ?? '—'}</span>${sub}</td>
+          <td><a class="pilot-link" href="${pilotUrl(r.n)}">${escape(r.n)}</a>${mixSub}</td>
           <td>${r.club ? `<a class="club-link" href="${clubUrl(r.club)}" title="${escape(clubNameOf(r.club))}">${escape(r.club)}</a>` : '<span style="color:var(--muted)">—</span>'}</td>
-          <td style="white-space:nowrap">${escape(DATA.cats[r.cat] || r.cat || '—')}</td>
+          <td title="${ageTitle}">${ageCell}</td>
           <td>${r.e}</td>
           <td><span class="score-val">${r.score}</span></td>
           <td>${trendLabel(r.trend)}</td>
-        </tr>`).join('')}</tbody>
+        </tr>`;
+        }).join('')}</tbody>
       </table></div>`;
     }
     moreBtn.hidden = rows.length <= shown;
     const nFav = favKeys().size;
     favBtn.textContent = `★ Suivis${nFav ? ` (${nFav})` : ''}`;
     favBtn.classList.toggle('active', state.favOnly);
-    setStatus(`${rows.length.toLocaleString('fr-FR')} pilote${rows.length > 1 ? 's' : ''} · fenêtre ${DATA._meta.windowFrom} → ${DATA._meta.windowTo}`);
+    if (pendingScroll) {
+      pendingScroll = false;
+      const el = document.getElementById('pilotHit');
+      if (el) el.scrollIntoView({
+        block: 'center',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    }
+    let msg = `${rows.length.toLocaleString('fr-FR')} pilote${rows.length > 1 ? 's' : ''} · fenêtre ${isoFr(DATA._meta.windowFrom)} → ${isoFr(DATA._meta.windowTo)}`;
+    const needle = state.q.trim();
+    if (needle) {
+      msg += hits.length
+        ? ` · « ${needle} » : ${hits.length} correspondance${hits.length > 1 ? 's' : ''} (Entrée = suivante)`
+        : ` · « ${needle} » introuvable dans cette vue`;
+    }
+    setStatus(msg);
   }
 
   function syncInputs() {
-    qInp.value = state.q; catSel.value = state.cat; clubInp.value = state.clubQ;
+    qInp.value = state.q; catSel.value = state.cat; sexeSel.value = state.sexe; ageSel.value = state.age;
+    clubInp.value = state.clubQ;
     minSel.value = String(state.min);
   }
   function readInputs() {
-    state.q = qInp.value; state.cat = catSel.value; state.clubQ = clubInp.value;
+    state.q = qInp.value; state.cat = catSel.value; state.sexe = sexeSel.value; state.age = ageSel.value;
+    state.clubQ = clubInp.value;
     state.min = parseInt(minSel.value, 10) || 5;
     shown = PAGE;
   }
   function resetFilters() {
-    Object.assign(state, { q: '', cat: '', clubQ: '', min: 5, favOnly: false });
+    Object.assign(state, { q: '', cat: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false });
     shown = PAGE; syncInputs(); pushUrlState(); render();
   }
 
@@ -393,7 +644,6 @@ footer a:hover{text-decoration:underline}
       ]);
       DATA = rj;
       CLUBS = (cj && cj.mapping) || {};
-      rankOf = stdRanks(DATA.rows);
       const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))].sort();
       const catNames = DATA.cats || {};
       catSel.innerHTML = '<option value="">Toutes</option>' + cats.map(c =>
@@ -402,12 +652,11 @@ footer a:hover{text-decoration:underline}
         `<option value="${m}"${m === state.min ? ' selected' : ''}>${m}+</option>`).join('');
       Object.assign(state, parseUrlState());
       syncInputs();
-      const wl = document.getElementById('windowLine');
-      if (wl) wl.textContent = `Fenêtre : ${DATA._meta.windowFrom} → ${DATA._meta.windowTo} · calculé le ${DATA._meta.generated}`;
+      if (state.q) pendingScroll = true; // ?q= partagé : saute au pilote au chargement
       const dd = document.getElementById('dataDate');
       if (dd && DATA._meta.generated) {
         document.getElementById('dataDateWrap').hidden = false;
-        dd.textContent = DATA._meta.generated;
+        dd.textContent = isoFr(DATA._meta.generated);
       }
       setStatus('');
       render();
@@ -444,19 +693,65 @@ footer a:hover{text-decoration:underline}
 
   // --- Événements ---
   let debounce = null;
-  for (const el of [qInp, clubInp]) {
-    el.addEventListener('input', () => {
-      clearTimeout(debounce);
-      debounce = setTimeout(() => { readInputs(); pushUrlState(); render(); }, 150);
-    });
-  }
+  qInp.addEventListener('input', () => {
+    openSugg();
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      const changed = qInp.value !== state.q;
+      readInputs(); pushUrlState();
+      if (changed) hitCursor = 0;
+      pendingScroll = false; render();
+    }, 150);
+  });
+  qInp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (qSugg.hidden) openSugg();
+      if (!suggList.length) return;
+      e.preventDefault();
+      suggIdx = (suggIdx + (e.key === 'ArrowDown' ? 1 : -1) + suggList.length) % suggList.length;
+      paintSuggActive();
+      const el = document.getElementById('qsugg-' + suggIdx);
+      if (el) el.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (e.key === 'Escape') { closeSugg(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    clearTimeout(debounce);
+    if (!qSugg.hidden && suggIdx >= 0) { pickSugg(suggIdx); return; }
+    closeSugg();
+    readInputs(); pushUrlState();
+    pendingScroll = true; render(); hitCursor++;
+  });
+  qSugg.addEventListener('mousedown', e => {
+    const item = e.target.closest('.sugg-item');
+    if (!item) return;
+    e.preventDefault();
+    pickSugg(Number(item.dataset.i));
+  });
+  qSugg.addEventListener('mouseover', e => {
+    const item = e.target.closest('.sugg-item');
+    if (!item) return;
+    suggIdx = Number(item.dataset.i);
+    paintSuggActive();
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.qwrap')) closeSugg();
+  });
+  clubInp.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => { readInputs(); pushUrlState(); render(); }, 150);
+  });
   catSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
+  sexeSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
+  ageSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   minSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   favBtn.addEventListener('click', () => { state.favOnly = !state.favOnly; shown = PAGE; pushUrlState(); render(); });
   resetBtn.addEventListener('click', resetFilters);
   moreBtn.addEventListener('click', () => { shown += PAGE; render(); });
   window.addEventListener('popstate', () => {
     Object.assign(state, parseUrlState());
+    hitCursor = 0; pendingScroll = false;
     shown = PAGE; syncInputs(); render();
   });
 

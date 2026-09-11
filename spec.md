@@ -15,7 +15,8 @@ l'app doit le dire explicitement, sous le titre.
 ## 2. Non-objectifs (V1)
 
 - Pas de temps réel : rebuild hebdo comme tout l'écosystème, date de calcul affichée.
-- Pas d'UEC/UCI : périmètre FR uniquement (régional + national).
+- ~~Pas d'UEC/UCI~~ / ~~pool mondial~~ — **Règle au 2026-09-11** : pool **français** (≥1 course
+  FR sur la fenêtre), mais **toutes** les courses de ces pilotes comptent (FR + UEC + UCI).
 - Pas de prédiction ni de simulation (voir idées « prédicteur » / « simulateur », hors scope).
 - Pas de comptes : favoris éventuels via l'état partagé `sqorz.*` existant, rien de plus.
 
@@ -24,46 +25,66 @@ l'app doit le dire explicitement, sous le titre.
 Calculer l'indice de 17k pilotes côté navigateur coûterait plusieurs minutes :
 le classement est pré-calculé par le build hebdo, là où vit déjà la force de plateau.
 
-- **Script** : `sqorz_stats/tools/build-perf-rankings.cjs` (à créer).
-- **Entrées** : `pilots-index.json` + `field-strength-fr.json` (+ `clubs.json` canonique
-  pour figer `club` et `clubName` par pilote).
+- **Script** : `sqorz_stats/tools/build-perf-rankings.cjs`.
+- **Entrées** (fusionnées par nom normalisé, une ligne par pilote) : `pilots-index.json` +
+  `field-strength-fr.json` (FR, coef régional ×0,93 / national ×1,0) + `uec-index.json` +
+  `field-strength-uec.json` (UEC, ×1,05) + `uci-index.json` (Mondiaux, ×1,05, sans force
+  de plateau) — sources manquantes ignorées avec avertissement, jamais d'échec.
 - **Calcul** : même pipeline que la partie Global de `sqorz_stats` (rang z-score
-  exposant 2,5 · constance ×0,97–1,05 · chrono 0,3/1,3 · niveau ×0,93/×1,0 ·
+  exposant 2,5 · constance ×0,97–1,05 · chrono 0,3/1,3 · niveau ×0,93/×1,0/×1,05 ·
   plateau +0,3×écart · DNF 250/400/550/700 · shrinkage +2 · clamp 5–1000),
   **sans les séries** (décision actée : courses uniquement).
-- **Fenêtre** : 365 j glissants — **ACTÉ le 2026-09-10.** Recalculée à chaque build,
-  affichée explicitement (« calculé du … au … »).
-- **Sortie** (`sqorz_stats/perf-rankings.json`, ~660 Ko pour ~8k lignes e≥3) :
+- **Fenêtre** : 365 j glissants — **ACTÉ le 2026-09-10.** Recalculée à chaque build
+  (ancrée sur la dernière donnée **toutes sources**), affichée explicitement
+  (« calculé du … au … »).
+- **Sortie** (`sqorz_stats/perf-rankings.json`, ~780 Ko pour ~8,4k lignes e≥3) :
   ```json
-  { "_meta": { "generated": "2026-09-10", "windowFrom": "2025-09-06", "windowTo": "2026-09-06", "pool": "FR", "count": 8254 },
-    "cats": { "U17": "U17 Garçon", "...": "..." },
-    "rows": [{ "n": "Prénom NOM", "club": "BESANC", "cat": "U17", "e": 42, "score": 788, "trend": 3 }] }
-  ```
-  `cat` = code de catégorie dominant (+ légende `cats`) ; `club` = code Sqorz
-  (nom complet via `clubs.json` vendu, pas dupliqué ici) ; rangs standard
+  { "_meta": { "generated": "2026-09-11", "windowFrom": "2025-09-06", "windowTo": "2026-09-06", "pool": "FR+", "count": 8365 },
+    "cats": { "U17": "U17 Garçon", "ME": "Men Elite", "...": "..." },
+   "rows": [{ "n": "Prénom NOM", "club": "BESANC", "cat": "U17", "e": 42, "score": 788, "trend": 3, "cr": 2, "by": 2009 }] }
+   ```
+   `cat` = code de catégorie dominant toutes sources (+ légende `cats`, libellés FR + EN) ;
+   `club` = club dominant (toujours renseigné : le pool exige un groupement club FR) ; `cr` = engagements cruiser
+   (présent si > 0 ; badge ⇄ si 0 < cr < e) ; `by` = année de naissance
+   (vote majoritaire des `année d'épreuve − âge` — pool français renseigné à 100 % en 2026-09) ;
+   rangs standard
   recalculés côté app (lignes triées) ; `trend` = delta de rang vs build N−1
-  (`"N"` si entrant — requiert l'artefact précédent, conservé par le build).
+  (`"N"` si entrant — requiert l'artefact précédent, conservé par le build ;
+  remaniement ponctuel à chaque changement de pool).
 - **Synchro** : copie versionnée vers `ranking_stats/` (pattern `clubs.json` :
   pas de dépendance runtime croisée) via **`sync-data.sh` unique** (clubs.json +
   perf-rankings.json) — **ACTÉ le 2026-09-10.**
 
 ## 4. Règles de classement
 
-- **Pool** : pilotes FR avec ≥ **5 engagements** sur la fenêtre (défaut, modifiable
-  3–20 par filtre). En dessous, le shrinkage tasse tout vers 500 : le bas du
-  classement ne voudrait rien dire.
+- **Pool** : pilotes **français** — un groupement **club** en course FR sur la fenêtre
+  (les groupements vus en UEC/UCI sont des codes pays : un étranger en course FR, même
+  avec un nom français, sort du pool) — avec ≥ **5 engagements** toutes sources sur la
+  fenêtre — **ACTÉ le 2026-09-11** (toutes les courses comptent, comme la partie Global
+  de `sqorz_stats` ; seuil modifiable 3–20 par filtre).
+  En dessous, le shrinkage tasse tout vers 500 : le bas du classement ne voudrait rien dire.
 - **Plancher d'âge** : aucun — **ACTÉ le 2026-09-10** (toutes catégories, comme en course).
 - **Tri** : score desc, ex-aequo → engagements desc, puis nom (déterministe).
   Rangs **standard (1,2,2,4)** — **ACTÉ le 2026-09-10.**
 
 ## 5. UI (une vue, bien faite)
 
-- **Tableau** : rang, pilote (lien fiche `sqorz-stats/?name=`), club (lien
-  `sqorz-club/?club=` + nom complet via `clubs.json` vendu), catégorie, engagements,
+- **Tableau** : rang (**dans le filtre actif**, recalculé 1,2,2,4 sur la vue ; rang général
+  rappelé en petit quand il diffère — référence : seuil d'engagements min seul, donc aucun
+  rappel dans la vue par défaut), pilote (lien fiche `sqorz-stats/?name=`), club (lien
+  `sqorz-club/?club=` + nom complet via `clubs.json` vendu), âge sportif (infobulle = année
+  de naissance), engagements,
   indice, tendance. 100 lignes/page + « charger plus ».
-- **Filtres** (état dans l'URL : `?cat=&club=&q=&min=`) : catégorie (liste), club
-  (recherche avec suggestions `Nom (CODE)`), engagements min (3–20), recherche nom
-  (sous-chaîne insensible accents, réutiliser `hubNorm`-like local).
+- **Filtres** (état dans l'URL : `?cat=&sexe=&age=&club=&q=&min=`) : catégorie (liste), sexe
+  (Filles & femmes / Garçons & hommes, déduit de la catégorie dominante — les catégories
+  mixtes sont masquées quand un sexe est choisi), âge sportif réel (année de saison −
+  année de naissance `by`, 6 ans et moins puis 7, 8…16 ans exacts, 17 ans et plus ;
+  un 11 ans en U13 sort dans « 11 ans »), localisation pilote (saisie + suggestions top 8
+  au classement — clic ou flèches + Entrée = focus sur le pilote, Entrée seule = occurrence
+  suivante, `?q=` partagé saute au pilote au chargement), club (recherche avec suggestions
+  `Nom (CODE)`), engagements min (3–20).
+  Badge ⇄ après le nom pour les mixtes 20″+cruiser (champ `cr`). La catégorie reste
+  filtrable (liste) mais ne s'affiche plus en colonne.
 - **Ligne « toi »** : si un favori `sqorz.favs.pilots` est dans le pool, bouton
   « retrouver mes suivis » qui filtre/scrolle jusqu'à eux (seul usageole de l'état
   partagé en V1).
@@ -78,7 +99,7 @@ le classement est pré-calculé par le build hebdo, là où vit déjà la force 
 - `common.js` via CDN `sqorz-stats` + repli local, avec gardes `typeof` (jamais de
   page blanche sur décalage de déploiement).
 - `clubs.json` vendu (noms complets).
-- Footer « Données issues de Sqorz » seul (pas d'UEC dans le pool).
+- Footer « Données issues de Sqorz et JSTiming » (pool mondial : ajouter JSTiming comme `sqorz_stats`).
 - `tests/` colocalisés, pattern extractionNode (`node --test`), suites vertes exigées.
 - Hub : ajouter `sqorz-rankings` à `DISPLAY_NAMES` + `STATIC_PROJECTS`
   (+ branche `main`) pour détection, cartes et recherche universelle.
@@ -88,6 +109,14 @@ le classement est pré-calculé par le build hebdo, là où vit déjà la force 
 
 1. Fenêtre 365 j glissants · 2. Aucun plancher d'âge · 3. Rangs standard (1,2,2,4) ·
 4. `sync-data.sh` unique · 5. Aide courte + lien fiche.
+
+## 8. Décision 2026-09-11 — pool français, toutes courses comptées (remplace le pool mondial du matin)
+
+Pilotes français uniquement (un groupement **club** en course FR — ex. Blok NED, Clitheroe GBR
+et 37 étrangers sans groupement sortent ; un étranger ne peut pas avoir de club FR),
+toutes leurs courses comptent (FR + UEC + UCI, une ligne par pilote, coefs ×0,93/×1,0/×1,05,
+`trend` remanié une fois). Motif : un double champion d'Europe (Ragot Richard) plafonnait
+à 859 sans ses titres (FR seul : 12 courses ; FR+ : 23 courses, 863).
 
 ## 8. Effort estimé
 
