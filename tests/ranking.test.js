@@ -277,8 +277,8 @@ test('pool français : club FR réel, mais toutes les courses comptent', () => {
   const base = { q: '', cat: '', clubQ: '', min: 3, sexe: '', age: '', seasonYear: sy, favKeys: null, clubNameOf: () => '', catInfoOf: infoOf };
   const ragot = j.rows.find(r => r.n === 'Mathis RAGOT RICHARD');
   assert.ok(ragot, 'Ragot présent');
-  assert.equal(ragot.e, 23, '12 FR + 11 UEC fusionnés');
-  assert.ok(ragot.score > 859, `titres UEC inclus, score en hausse (${ragot.score})`);
+  assert.equal(ragot.e, 29, '12 FR + 11 UEC + 6 Coupe du monde fusionnés');
+  assert.ok(ragot.score > 800 && ragot.score < 900, `WC dilue (mid-pack mondial) : ${ragot.score}`);
   for (const absent of ['Jules KASPER', 'Evi BLOK', 'James CLITHEROE']) {
     assert.ok(!j.rows.some(r => r.n === absent), `étranger exclu (${absent})`);
   }
