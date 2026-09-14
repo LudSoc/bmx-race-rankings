@@ -41,3 +41,11 @@ sur GitHub Pages. Classement pré-calculé chaque semaine (`perf-rankings.json`,
 construit dans sqorz-stats, copie versionnée ici). Voir `spec.md`.
 
 > Projet communautaire non officiel, non affilié à Sqorz.
+
+## Licence
+
+Ce projet est sous licence **GNU Affero General Public License v3 (AGPLv3)** — voir `LICENSE`.
+
+Concrètement : vous pouvez utiliser, modifier et repartager ce code (y compris hébergé
+sur le web), **à condition de repartager vos modifications sous la même licence**.
+© 2026 ludovic.socie — versions antérieures au 14/09/2026 diffusées sous licence MIT.
