@@ -1,4 +1,4 @@
-# Sqorz · Classements
+# BMX-Race · Classements
 
 **[🇬🇧 English](#english) · [🇫🇷 Français](#français)**
 
@@ -12,12 +12,12 @@ competition most — by category and by club. Built on public
 
 ### Live
 
-**[ludsoc.github.io/sqorz-rankings](https://ludsoc.github.io/sqorz-rankings/)**
+**[ludsoc.github.io/bmx-race-rankings](https://ludsoc.github.io/bmx-race-rankings/)**
 
 ### Tech
 
 Single-file HTML/CSS/JS — no framework, no build step. Hosted on GitHub Pages.
-Ranking precomputed weekly (`perf-rankings.json`, built in sqorz-stats,
+Ranking precomputed weekly (`perf-rankings.json`, built in bmx-race-stats,
 vendored copy here). See `spec.md`.
 
 > Community project, not affiliated with Sqorz.
@@ -32,13 +32,13 @@ le plus sa concurrence — par catégorie et par club. Données publiques
 
 ### Accès
 
-**[ludsoc.github.io/sqorz-rankings](https://ludsoc.github.io/sqorz-rankings/)**
+**[ludsoc.github.io/bmx-race-rankings](https://ludsoc.github.io/bmx-race-rankings/)**
 
 ### Technique
 
 HTML/CSS/JS en fichier unique — pas de framework, pas d'étape de build. Hébergé
 sur GitHub Pages. Classement pré-calculé chaque semaine (`perf-rankings.json`,
-construit dans sqorz-stats, copie versionnée ici). Voir `spec.md`.
+construit dans bmx-race-stats, copie versionnée ici). Voir `spec.md`.
 
 > Projet communautaire non officiel, non affilié à Sqorz.
 

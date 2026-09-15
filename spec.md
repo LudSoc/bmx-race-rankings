@@ -1,4 +1,4 @@
-# Spec — Sqorz · Classements (`ranking_stats` / `sqorz-rankings`)
+# Spec — BMX-Race · Classements (`ranking_stats` / `bmx-race-rankings`)
 
 Classement national des pilotes BMX Race par indice de performance.
 Statut : **décisions prises le 2026-09-10 — prête à coder.**
@@ -71,8 +71,8 @@ le classement est pré-calculé par le build hebdo, là où vit déjà la force 
 
 - **Tableau** : rang (**dans le filtre actif**, recalculé 1,2,2,4 sur la vue ; rang général
   rappelé en petit quand il diffère — référence : seuil d'engagements min seul, donc aucun
-  rappel dans la vue par défaut), pilote (lien fiche `sqorz-stats/?name=`), club (lien
-  `sqorz-club/?club=` + nom complet via `clubs.json` vendu), âge sportif (infobulle = année
+  rappel dans la vue par défaut), pilote (lien fiche `bmx-race-stats/?name=`), club (lien
+  `bmx-race-club/?club=` + nom complet via `clubs.json` vendu), âge sportif (infobulle = année
   de naissance), engagements,
   indice, tendance. 100 lignes/page + « charger plus ».
 - **Filtres** (état dans l'URL : `?cat=&sexe=&age=&club=&q=&min=`) : catégorie (liste), sexe
@@ -85,7 +85,7 @@ le classement est pré-calculé par le build hebdo, là où vit déjà la force 
   `Nom (CODE)`), engagements min (3–20).
   Badge ⇄ après le nom pour les mixtes 20″+cruiser (champ `cr`). La catégorie reste
   filtrable (liste) mais ne s'affiche plus en colonne.
-- **Ligne « toi »** : si un favori `sqorz.favs.pilots` est dans le pool, bouton
+- **Ligne « toi »** : si un favori `bmx.favs.pilots` est dans le pool, bouton
   « retrouver mes suivis » qui filtre/scrolle jusqu'à eux (seul usageole de l'état
   partagé en V1).
 - **En-tête** : intitulé honnête + fenêtre (« calculé sur 2026 au 10/09/2026 ») +
@@ -96,12 +96,12 @@ le classement est pré-calculé par le build hebdo, là où vit déjà la force 
 ## 6. Conventions écosystème (obligatoires)
 
 - `theme.css` vendu (couleurs/ombres/focus/reduced-motion uniques).
-- `common.js` via CDN `sqorz-stats` + repli local, avec gardes `typeof` (jamais de
+- `common.js` via CDN `bmx-race-stats` + repli local, avec gardes `typeof` (jamais de
   page blanche sur décalage de déploiement).
 - `clubs.json` vendu (noms complets).
 - Footer « Données issues de Sqorz et JSTiming » (pool mondial : ajouter JSTiming comme `sqorz_stats`).
 - `tests/` colocalisés, pattern extractionNode (`node --test`), suites vertes exigées.
-- Hub : ajouter `sqorz-rankings` à `DISPLAY_NAMES` + `STATIC_PROJECTS`
+- Hub : ajouter `bmx-race-rankings` à `DISPLAY_NAMES` + `STATIC_PROJECTS`
   (+ branche `main`) pour détection, cartes et recherche universelle.
 - Pousser `sqorz_stats` (artefact) avant `ranking_stats` ; pas d'autre contrainte d'ordre.
 

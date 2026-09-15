@@ -6,14 +6,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234a7ab5'/><text x='16' y='23' font-family='system-ui' font-size='20' font-weight='800' fill='white' text-anchor='middle'>C</text></svg>">
-<title>Classements Pilotes BMX — Sqorz Hub</title>
+<title>BMX-Race · Classements</title>
 <meta name="description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://ludsoc.github.io/sqorz-rankings/">
-<meta property="og:title" content="Classements Pilotes BMX — Sqorz Hub">
+<meta property="og:url" content="https://ludsoc.github.io/bmx-race-rankings/">
+<meta property="og:title" content="BMX-Race · Classements">
 <meta property="og:description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Classements Pilotes BMX — Sqorz Hub">
+<meta name="twitter:title" content="BMX-Race · Classements">
 <meta name="twitter:description" content="Classement des pilotes BMX français par indice de performance : toutes les courses comptent (France, Europe, Mondiaux).">
 <script>
   (() => {
@@ -189,7 +189,7 @@ footer a:hover{text-decoration:underline}
         <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
         <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-      </svg></span> Sqorz · Classements</div>
+      </svg></span> BMX-Race · Classements</div>
       <div style="display:flex; gap:8px; align-items:center">
       <a href="https://ko-fi.com/sqorz_tools" target="_blank" rel="noopener noreferrer" class="donate-btn" title="Soutenir le projet sur Ko-fi"><span class="donate-icon">☕</span><span class="donate-label">Soutenir</span></a>
       <button type="button" id="themeBtn" class="theme-btn" aria-label="Changer le thème" title="Changer le thème (auto / clair / sombre)"></button>
@@ -197,7 +197,7 @@ footer a:hover{text-decoration:underline}
     </div>
     <h1>Classements pilotes</h1>
     <p>Les pilotes français qui dominent le plus leurs courses sur les 12 derniers mois — France, Coupes d'Europe et Mondiaux — notés de 0 à 1000 selon la force de leurs plateaux. Pas une valeur absolue : un jeune qui écrase sa catégorie devance un Élite irrégulier.</p>
-    <a class="hub-back" id="hubBackLink" href="#" aria-label="Retour au Sqorz Hub">← Sqorz Hub</a>
+    <a class="hub-back" id="hubBackLink" href="#" aria-label="Retour au BMX-Race Hub">← BMX-Race Hub</a>
   </div>
 </div>
 
@@ -282,12 +282,12 @@ footer a:hover{text-decoration:underline}
 </footer>
 
 <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
-<script src="https://ludsoc.github.io/sqorz-stats/common.js"></script>
-<script>if (!window.SqorzCommon) document.write('<script src="../sqorz_stats/common.js"><\/script>');</script>
+<script src="https://ludsoc.github.io/bmx-race-stats/common.js"></script>
+<script>if (!window.BmxCommon) document.write('<script src="../sqorz_stats/common.js"><\/script>');</script>
 <script>
 (() => {
-  if (!window.SqorzCommon) throw new Error('[rankings] common.js introuvable — recharge la page.');
-  const { norm, escape } = window.SqorzCommon;
+  if (!window.BmxCommon) throw new Error('[rankings] common.js introuvable — recharge la page.');
+  const { norm, escape } = window.BmxCommon;
 
   // --- Normalisations (compatibles club_stats : tiret conservé pour les codes) ---
   function normStr(s) {
@@ -309,10 +309,10 @@ footer a:hover{text-decoration:underline}
     if (h === 'localhost' || h === '127.0.0.1') return `/${dir}/`;
     return `https://ludsoc.github.io/${repo}/`;
   }
-  const SQORZ_STATS_BASE = pagesBase('sqorz-stats', 'sqorz_stats');
-  const CLUB_BASE = pagesBase('sqorz-club', 'club_stats');
-  const HUB_BASE = pagesBase('sqorz-hub', 'sqorz_hub');
-  const pilotUrl = name => SQORZ_STATS_BASE + '?name=' + encodeURIComponent(name);
+  const STATS_BASE = pagesBase('bmx-race-stats', 'sqorz_stats');
+  const CLUB_BASE = pagesBase('bmx-race-club', 'club_stats');
+  const HUB_BASE = pagesBase('bmx-race-hub', 'sqorz_hub');
+  const pilotUrl = name => STATS_BASE + '?name=' + encodeURIComponent(name);
   const clubUrl = key => CLUB_BASE + '?club=' + encodeURIComponent(clubKey(key));
 
   // --- Sexe déduit de la catégorie dominante (cat + légende cats, FR + EN car UEC/UCI) ---
@@ -521,7 +521,9 @@ footer a:hover{text-decoration:underline}
 
   function favKeys() {
     try {
-      const v = JSON.parse(localStorage.getItem('sqorz.favs.pilots'));
+      // Clé partagée bmx.* (migrée one-shot par common.js) + repli sur l'ancienne.
+      const raw = localStorage.getItem('bmx.favs.pilots') ?? localStorage.getItem('sqorz.favs.pilots');
+      const v = JSON.parse(raw);
       if (!Array.isArray(v)) return new Set();
       return new Set(v.filter(e => e && e.key).map(e => e.key));
     } catch { return new Set(); }
@@ -691,7 +693,7 @@ footer a:hover{text-decoration:underline}
 
   // --- Liens retour hub + aide ---
   document.getElementById('hubBackLink').href = HUB_BASE;
-  document.getElementById('perfHelpLink').href = SQORZ_STATS_BASE;
+  document.getElementById('perfHelpLink').href = STATS_BASE;
 
   // --- Événements ---
   let debounce = null;
