@@ -354,6 +354,36 @@ footer a:hover{text-decoration:underline}
     return { sexe: catSexe(code, label), cruiser: isCruiserCat(code, label) };
   }
 
+  // --- Référentiel catégories (niveaux) — optionnel, chargé en arrière-plan ---
+  const REF_LEVEL_LABELS = { national: 'National', regional: 'Régional', departemental: 'Départemental', uec: 'UEC', uci: 'UCI' };
+  let catRef = null;
+
+  // Niveau d'un code de catégorie : FR d'abord, puis UEC, Mondiaux, Coupe du monde.
+  function refLevelFor(code) {
+    if (!catRef || !code) return '';
+    const sections = ['categories', 'categoriesUec', 'categoriesUci', 'categoriesWorldCup'];
+    for (const src of sections) {
+      const entry = catRef[src] && catRef[src][code];
+      if (entry && entry.level) return entry.level;
+    }
+    return '';
+  }
+
+  async function loadCatRef() {
+    try {
+      const r = await fetch('../sqorz_stats/categories-ref.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      catRef = await r.json();
+    } catch (e) {
+      catRef = null;
+      console.warn('[rankings] categories-ref.json indisponible (optionnel) :', e && e.message);
+      return;
+    }
+    fillCatSel();
+    if (!state.cat || ![...catSel.options].some(o => o.value === state.cat)) state.cat = '';
+    syncInputs();
+  }
+
   // Âge sportif réel : année de saison − année de naissance (champ `by` du build).
   // Sans `by` (données anciennes), le pilote est exclu dès qu'un âge est choisi.
   function pilotAge(r, seasonYear) {
@@ -628,6 +658,17 @@ footer a:hover{text-decoration:underline}
     clubInp.value = state.clubQ;
     minSel.value = String(state.min);
   }
+  // Liste des catégories du classement, préfixées du niveau (National / Régional / UEC / UCI…).
+  function fillCatSel() {
+    if (!DATA) return;
+    const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))].sort();
+    const catNames = DATA.cats || {};
+    catSel.innerHTML = '<option value="">Toutes</option>' + cats.map(c => {
+      const lvl = refLevelFor(c);
+      const prefix = lvl ? (REF_LEVEL_LABELS[lvl] || lvl) + ' · ' : '';
+      return `<option value="${escape(c)}">${escape(prefix + (catNames[c] || c))}</option>`;
+    }).join('');
+  }
   function readInputs() {
     state.q = qInp.value; state.cat = catSel.value; state.sexe = sexeSel.value; state.age = ageSel.value;
     state.clubQ = clubInp.value;
@@ -648,10 +689,7 @@ footer a:hover{text-decoration:underline}
       ]);
       DATA = rj;
       CLUBS = (cj && cj.mapping) || {};
-      const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))].sort();
-      const catNames = DATA.cats || {};
-      catSel.innerHTML = '<option value="">Toutes</option>' + cats.map(c =>
-        `<option value="${escape(c)}">${escape(catNames[c] || c)}</option>`).join('');
+      fillCatSel();
       minSel.innerHTML = [3, 4, 5, 8, 10, 15, 20].map(m =>
         `<option value="${m}"${m === state.min ? ' selected' : ''}>${m}+</option>`).join('');
       Object.assign(state, parseUrlState());
@@ -760,6 +798,7 @@ footer a:hover{text-decoration:underline}
   });
 
   load();
+  loadCatRef();
 })();
 </script>
 </body>
