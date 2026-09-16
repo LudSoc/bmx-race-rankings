@@ -371,7 +371,12 @@ footer a:hover{text-decoration:underline}
 
   async function loadCatRef() {
     try {
-      const r = await fetch('../sqorz_stats/categories-ref.json', { cache: 'no-cache' });
+      // En prod (GitHub Pages), les repos sont séparés — résolution absolue.
+      // En local (file:// ou 127.0.0.1), fallback relatif depuis sqorz_tools/ranking_stats/.
+      const baseUrl = window.location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(window.location.hostname)
+        ? '../sqorz_stats'
+        : 'https://ludsoc.github.io/bmx-race-stats';
+      const r = await fetch(`${baseUrl}/categories-ref.json`, { cache: 'no-cache' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       catRef = await r.json();
     } catch (e) {
@@ -661,13 +666,21 @@ footer a:hover{text-decoration:underline}
   // Liste des catégories du classement, préfixées du niveau (National / Régional / UEC / UCI…).
   function fillCatSel() {
     if (!DATA) return;
-    const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))].sort();
+    const lvlOrder = { departemental: 0, regional: 1, national: 2, uec: 3, uci: 4 };
+    const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))];
+    cats.sort((a, b) => {
+      const la = refLevelFor(a) in lvlOrder ? lvlOrder[refLevelFor(a)] : 99;
+      const lb = refLevelFor(b) in lvlOrder ? lvlOrder[refLevelFor(b)] : 99;
+      if (la !== lb) return la - lb;
+      return a.localeCompare(b, 'fr', { sensitivity: 'base' });
+    });
     const catNames = DATA.cats || {};
-    catSel.innerHTML = '<option value="">Toutes</option>' + cats.map(c => {
+    const opts = cats.map(c => {
       const lvl = refLevelFor(c);
       const prefix = lvl ? (REF_LEVEL_LABELS[lvl] || lvl) + ' · ' : '';
       return `<option value="${escape(c)}">${escape(prefix + (catNames[c] || c))}</option>`;
-    }).join('');
+    });
+    catSel.innerHTML = '<option value="">Toutes</option>' + opts.join('');
   }
   function readInputs() {
     state.q = qInp.value; state.cat = catSel.value; state.sexe = sexeSel.value; state.age = ageSel.value;
