@@ -15,8 +15,7 @@ function block(start, indent = '  ') {
 }
 global.window = { location: { protocol: 'https:', hostname: 'test.invalid' } };
 const harness = [
-  'const norm = s => s;',
-  'const escape = s => s;',
+  'const norm = s => (s || \'\').toString().normalize(\'NFD\').replace(/[\\u0300-\\u036f]/g, \'\').toLowerCase().replace(/[^a-z0-9 ]+/g, \' \').trim().replace(/\\s+/g, \' \');',
   block('function normStr(s) {'),
   block('function clubKey(s) {'),
   block('function isoFr(iso) {'),
@@ -24,6 +23,9 @@ const harness = [
   block('function isCruiserCat(code, label) {'),
   block('function catInfo(code, label) {'),
   block('function pilotLevel(code, ref) {'),
+  block('function pilotStatus(r, seasonYear, lrp, ref) {'),
+  block('function lrpStatus(fullName, age, lrp) {'),
+  block('function matchNiveau(status, sel) {'),
   block('function pilotAge(r, seasonYear) {'),
   block('function matchPilotAge(a, sel) {'),
   block('function pilotSuggestions(rows, q, limit = 8) {'),
@@ -32,7 +34,7 @@ const harness = [
   block('function stdRanks(rows) {'),
   block('function rankFmt(n) {'),
   block('function trendLabel(t) {'),
-].join('\n') + '\nreturn { normStr, clubKey, isoFr, catSexe, isCruiserCat, catInfo, pilotLevel, pilotAge, matchPilotAge, pilotSuggestions, locateHits, applyFilters, stdRanks, rankFmt, trendLabel };';
+].join('\n') + '\nreturn { norm, normStr, clubKey, isoFr, catSexe, isCruiserCat, catInfo, pilotLevel, pilotStatus, lrpStatus, matchNiveau, pilotAge, matchPilotAge, pilotSuggestions, locateHits, applyFilters, stdRanks, rankFmt, trendLabel };';
 const H = new Function(harness)();
 const H2src = [
   block('function catSexe(code, label) {'),
@@ -181,23 +183,32 @@ test('pilotLevel : élite vs national vs rien (référentiel)', () => {
   assert.equal(H2.pilotLevel('EH', null), '', 'sans référentiel : rien');
 });
 
-test('applyFilters : niveau (élite / national) sur la catégorie dominante', () => {
-  const ref = {
-    categories: { EH: { trancheKey: 'eh', level: 'national' }, H1724N: { trancheKey: 'm17-24', level: 'national' }, U13GR: { trancheKey: 'gU13', level: 'regional' } },
-    categoriesUec: {}, categoriesUci: {}, categoriesWorldCup: {},
-  };
-  const levelOf = code => H.pilotLevel(code, ref);
+test('applyFilters : niveau (élite / national / ni national ni élite)', () => {
+  const lrp = new Map([
+    ['elite a', { level: 'national', elite: true }],
+    ['national b', { level: 'national', elite: false }],
+  ]);
   const rows = [
     { n: 'Élite A', club: '', cat: 'EH', e: 5, score: 900, trend: 0, by: 2000 },
     { n: 'National B', club: '', cat: 'H1724N', e: 5, score: 700, trend: 0, by: 2000 },
     { n: 'Régional C', club: '', cat: 'U13GR', e: 5, score: 600, trend: 0, by: 2014 },
   ];
-  const base = { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 3, favKeys: null, clubNameOf: () => '', levelOf };
+  const statusOf = r => H.pilotStatus(r, 2026, lrp, {});
+  const base = { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 3, favKeys: null, clubNameOf: () => '', statusOf };
   assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'elite' }).map(r => r.n), ['Élite A']);
   assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'national' }).map(r => r.n), ['National B']);
+  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'none' }).map(r => r.n), ['Régional C'], 'ni national ni élite');
   assert.deepEqual(H.applyFilters(rows, { ...base, niveau: '' }).map(r => r.n), ['Élite A', 'National B', 'Régional C'], 'Tous');
-  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'elite' }).length +
-    H.applyFilters(rows, { ...base, niveau: 'national' }).length, 2, 'partition disjointe');
+  // Sans liste LRP : repli sur le référentiel de catégories.
+  const ref = {
+    categories: { EH: { trancheKey: 'eh', level: 'national' }, H1724N: { trancheKey: 'm17-24', level: 'national' }, U13GR: { trancheKey: 'gU13', level: 'regional' } },
+    categoriesUec: {}, categoriesUci: {}, categoriesWorldCup: {},
+  };
+  const statusOfRef = r => H.pilotStatus(r, 2026, null, ref);
+  const baseRef = { ...base, statusOf: statusOfRef };
+  assert.deepEqual(H.applyFilters(rows, { ...baseRef, niveau: 'elite' }).map(r => r.n), ['Élite A']);
+  assert.deepEqual(H.applyFilters(rows, { ...baseRef, niveau: 'national' }).map(r => r.n), ['National B']);
+  assert.deepEqual(H.applyFilters(rows, { ...baseRef, niveau: 'none' }).map(r => r.n), ['Régional C']);
 });
 
 test('pilotLevel sur données réelles : volumes élite/national plausibles', t => {
@@ -215,6 +226,73 @@ test('pilotLevel sur données réelles : volumes élite/national plausibles', t 
   assert.ok(national.length >= 1300 && national.length <= 1800, `national plausible (${national.length})`);
   assert.ok(elite.every(r => levelOf(r.cat) === 'elite') && national.every(r => levelOf(r.cat) === 'national'));
   assert.equal(elite.filter(r => ['EH', 'EF', 'ME', 'WE'].includes(r.cat)).length, elite.length, 'élite = EH/EF/ME/WE uniquement');
+});
+
+test('lrpStatus : la liste LRP décide (élite / national / rien)', () => {
+  const map = new Map([
+    ['mathis ragot richard', { level: 'national', elite: true }],
+    ['joris daudet', { level: 'national', elite: true }],
+    ['jean national', { level: 'national', elite: false }],
+    ['paul regional', { level: 'regional', elite: false }],
+  ]);
+  assert.equal(H.lrpStatus('Mathis RAGOT RICHARD', 28, map), 'elite');
+  assert.equal(H.lrpStatus('JORIS Daudet', 27, map), 'elite', 'insensible casse/accents');
+  assert.equal(H.lrpStatus('Mathis RAGOT RICHARD', 28, null), '');
+  assert.equal(H.lrpStatus('Jean National', 28, map), 'national');
+  assert.equal(H.lrpStatus('Jean National', 10, map), '', 'jamais avant 13 ans');
+  assert.equal(H.lrpStatus('Jean National', 13, map), 'national', '13 ans OK');
+  assert.equal(H.lrpStatus('Paul Regional', 28, map), '', 'régional : aucun');
+  assert.equal(H.lrpStatus('Inconnu', 28, map), '', 'hors liste : aucun');
+  assert.equal(H.lrpStatus('', 28, map), '');
+  assert.equal(H.lrpStatus('Jean National', 28, undefined), '');
+});
+
+test('pilotStatus : LRP d\'abord, repli référentiel si liste indisponible', () => {
+  const ref = {
+    categories: { EH: { trancheKey: 'eh', level: 'national' }, U13GR: { trancheKey: 'gU13', level: 'regional' } },
+    categoriesUec: {}, categoriesUci: {}, categoriesWorldCup: {},
+  };
+  const lrp = new Map([['national pilote', { level: 'national', elite: false }]]);
+  assert.equal(H.pilotStatus({ n: 'National Pilote', cat: 'U13GR', by: 2000 }, 2026, lrp, ref), 'national', 'LRP prime sur la catégorie');
+  assert.equal(H.pilotStatus({ n: 'Hors liste', cat: 'EH', by: 2000 }, 2026, lrp, ref), '', 'hors LRP : rien même en EH');
+  assert.equal(H.pilotStatus({ n: 'Sans LRP', cat: 'EH', by: 2000 }, 2026, null, ref), 'elite', 'repli référentiel');
+  assert.equal(H.pilotStatus({ n: 'Sans LRP', cat: 'U13GR', by: 2000 }, 2026, null, ref), '', 'repli : régional rien');
+});
+
+test('matchNiveau : none = ni national ni élite', () => {
+  assert.equal(H.matchNiveau('', ''), true);
+  assert.equal(H.matchNiveau('elite', ''), true, 'pas de filtre = passe');
+  assert.equal(H.matchNiveau('elite', 'elite'), true);
+  assert.equal(H.matchNiveau('national', 'elite'), false);
+  assert.equal(H.matchNiveau('national', 'national'), true);
+  assert.equal(H.matchNiveau('', 'national'), false);
+  assert.equal(H.matchNiveau('elite', 'none'), false);
+  assert.equal(H.matchNiveau('national', 'none'), false);
+  assert.equal(H.matchNiveau('', 'none'), true);
+});
+
+test('statut LRP sur données réelles : volumes + partition de la liste (nécessite sqorz_stats)', t => {
+  const lrpPath = path.join(__dirname, '..', '..', 'sqorz_stats', 'pilots-lrp-2026.json');
+  if (!fs.existsSync(lrpPath)) {
+    t.skip('sqorz_stats/pilots-lrp-2026.json absent (repo local uniquement)');
+    return;
+  }
+  const lrpArr = JSON.parse(fs.readFileSync(lrpPath, 'utf8'));
+  const map = new Map();
+  for (const p of lrpArr.pilots || []) {
+    const key = H.norm(`${p.prenom || ''} ${p.nom || ''}`).trim();
+    if (!key || (p.level !== 'national' && p.level !== 'regional')) continue;
+    const elite = p.categorieFra ? /ELITE/.test(String(p.categorieFra).toUpperCase()) : false;
+    map.set(key, { level: p.level, elite });
+  }
+  const j = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'perf-rankings.json'), 'utf8'));
+  const sy = parseInt(j._meta.windowTo.slice(0, 4), 10);
+  const elite = j.rows.filter(r => H.pilotStatus(r, sy, map, null) === 'elite');
+  const national = j.rows.filter(r => H.pilotStatus(r, sy, map, null) === 'national');
+  assert.ok(elite.length >= 100 && elite.length <= 250, `élite LRP plausible (${elite.length})`);
+  assert.ok(national.length >= 650 && national.length <= 1000, `national LRP plausible (${national.length})`);
+  assert.ok(elite.some(r => r.n === 'Mathis RAGOT RICHARD'), 'Ragot élite (liste LRP, catégorie ME)');
+  assert.equal(j.rows.length, elite.length + national.length + j.rows.filter(r => H.pilotStatus(r, sy, map, null) === '').length, 'partition totale');
 });
 
 test('perf-rankings.json : champ by (année de naissance) complet', () => {

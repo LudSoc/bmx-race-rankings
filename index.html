@@ -227,6 +227,7 @@ footer a:hover{text-decoration:underline}
         <label for="niveauSel">Niveau</label>
         <select class="control" id="niveauSel">
           <option value="">Tous</option>
+          <option value="none">Ni national ni élite</option>
           <option value="national">National</option>
           <option value="elite">Élite</option>
         </select>
@@ -269,7 +270,7 @@ footer a:hover{text-decoration:underline}
       <summary>ℹ️ Comment est calculé ce classement ?</summary>
       <div class="perf-how-body">
         <p>Chaque pilote est noté de 0 à 1000 par son <strong>indice de performance</strong> : places ajustées de la taille et de la force des plateaux, régularité, chronos, le tout ramené vers 500 quand il y a peu de courses. Seules les <strong>courses</strong> comptent (pas les classements de championnats), <strong>toutes sources</strong> : France (Sqorz), Coupes et Championnats d'Europe UEC (JSTiming) et Mondiaux UCI. Le pool est français (licenciés en club : un groupement club en course FR — les étrangers, même vus en France, sont exclus), mais <strong>toutes</strong> les courses de ces pilotes comptent, en France comme à l'international.</p>
-        <p>L'<strong>âge</strong> est l'âge sportif réel (année de saison − année de naissance déduite des engagements) : un garçon de 11 ans qui roule en U13 sort bien dans « 11 ans ». Le <strong>sexe</strong> se lit sur la catégorie dominante (les catégories mixtes sont masquées quand un sexe est choisi). Le <strong>niveau</strong> se lit aussi sur la catégorie dominante : <span class="rank-badge rank-badge-elite">Élite</span> pour les élites (EH/EF, ME/WE, UCI), <span class="rank-badge rank-badge-national">National</span> pour les catégories de niveau national. Un pilote qui roule en 20″ et en cruiser est signalé par un badge ⇄. Le <strong>#</strong> est le rang dans le filtre actif, avec le rang général rappelé en petit (référence : seuil d'engagements min, sans les autres filtres — aucun rappel dans la vue par défaut).</p>
+        <p>L'<strong>âge</strong> est l'âge sportif réel (année de saison − année de naissance déduite des engagements) : un garçon de 11 ans qui roule en U13 sort bien dans « 11 ans ». Le <strong>sexe</strong> se lit sur la catégorie dominante (les catégories mixtes sont masquées quand un sexe est choisi). Le <strong>niveau</strong> est décidé par la <strong>liste LRP</strong> (Liste Régionale de Progression, même source que Stats Pilote) : <span class="rank-badge rank-badge-elite">Élite</span> pour les pilotes de la liste en catégorie Élite, <span class="rank-badge rank-badge-national">National</span> pour ceux listés en national (jamais avant 13 ans). Les autres (liste régionale ou hors liste) n'ont pas de badge et sortent dans le filtre « Ni national ni élite » ; si la liste LRP est indisponible, repli sur le référentiel de catégories. Un pilote qui roule en 20″ et en cruiser est signalé par un badge ⇄. Le <strong>#</strong> est le rang dans le filtre actif, avec le rang général rappelé en petit (référence : seuil d'engagements min, sans les autres filtres — aucun rappel dans la vue par défaut).</p>
         <p>Détail complet des coefficients : voir la fiche d'un pilote sur <a id="perfHelpLink" href="#">Stats Pilote</a>, encadré « Comment est-il calculé ? ».</p>
       </div>
     </details>
@@ -379,6 +380,30 @@ footer a:hover{text-decoration:underline}
     return '';
   }
 
+  // Statut pilote : la liste LRP décide (testable, comme sqorz_stats). Si la
+  // LRP n'est pas chargée, repli sur le référentiel de catégories (piloteLevel).
+  function pilotStatus(r, seasonYear, lrp, ref) {
+    if (lrp) return lrpStatus(r.n, pilotAge(r, seasonYear), lrp);
+    return pilotLevel(r.cat, ref);
+  }
+
+  // Statut LRP d'un pilote (testable) : 'elite' | 'national' | ''.
+  // Élite = catégorie Élite de la liste ; national = listé en national, jamais
+  // avant 13 ans ; hors liste ou régional = aucun.
+  function lrpStatus(fullName, age, lrp) {
+    const e = lrp && lrp.get(norm((fullName || '').trim()));
+    if (e && e.elite) return 'elite';
+    if (!e || e.level !== 'national') return '';
+    return (typeof age === 'number' && age < 13) ? '' : 'national';
+  }
+
+  // Match du filtre Niveau (testable) : 'none' = ni national ni élite.
+  function matchNiveau(status, sel) {
+    if (!sel) return true;
+    if (sel === 'none') return status !== 'elite' && status !== 'national';
+    return status === sel;
+  }
+
   // Âge sportif réel : année de saison − année de naissance (champ `by` du build).
   // Sans `by` (données anciennes), le pilote est exclu dès qu'un âge est choisi.
   function pilotAge(r, seasonYear) {
@@ -432,7 +457,7 @@ footer a:hover{text-decoration:underline}
         const info = f.catInfoOf ? f.catInfoOf(r.cat) : null;
         if (!info || info.sexe !== f.sexe) return false;
       }
-      if (f.niveau && (!f.levelOf || f.levelOf(r.cat) !== f.niveau)) return false;
+      if (f.niveau && !matchNiveau(f.statusOf ? f.statusOf(r) : '', f.niveau)) return false;
       if (f.age && !matchPilotAge(pilotAge(r, f.seasonYear), f.age)) return false;
       if (f.favKeys && !f.favKeys.has(normStr(r.n))) return false;
       if (cq && !(clubKey(r.club).includes(cq) || normStr(f.clubNameOf ? f.clubNameOf(r.club) : '').includes(cq))) return false;
@@ -467,6 +492,7 @@ footer a:hover{text-decoration:underline}
   let DATA = null;      // { _meta, cats, rows }
   let CLUBS = {};       // CODE -> {name, city}
   let catRef = null;    // sqorz_stats/categories-ref.json (niveaux) — optionnel, chargé en arrière-plan
+  let lrpLevels = null; // liste LRP (pilots-lrp-2026.json) → {level, elite} par pilote — décide le statut
   let shown = 100;
   const PAGE = 100;
   const state = { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 5, favOnly: false };
@@ -529,7 +555,7 @@ footer a:hover{text-decoration:underline}
   function parseUrlState() {
     const p = new URLSearchParams(location.search);
     const sexe = p.get('sexe') === 'F' || p.get('sexe') === 'H' ? p.get('sexe') : '';
-    const niveau = p.get('niveau') === 'national' || p.get('niveau') === 'elite' ? p.get('niveau') : '';
+    const niveau = ['none', 'national', 'elite'].includes(p.get('niveau')) ? p.get('niveau') : '';
     const ageRaw = p.get('age') || '';
     const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17-24', '25-29', '30+'].includes(ageRaw) ? ageRaw : '';
     return {
@@ -570,14 +596,15 @@ footer a:hover{text-decoration:underline}
   // vue et référence coïncident → aucun chiffre gris.
   function filterArgs(over) {
     const cats = (DATA && DATA.cats) || {};
+    const seasonYear = parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null;
     return Object.assign({
       q: state.q, sexe: state.sexe, niveau: state.niveau, age: state.age,
-      seasonYear: parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null,
+      seasonYear,
       clubQ: state.clubQ, min: state.min,
       favKeys: state.favOnly ? favKeys() : null,
       clubNameOf,
       catInfoOf: code => catInfo(code, cats[code] || ''),
-      levelOf: code => pilotLevel(code, catRef),
+      statusOf: r => pilotStatus(r, seasonYear, lrpLevels, catRef),
     }, over);
   }
 
@@ -613,9 +640,9 @@ footer a:hover{text-decoration:underline}
           const isMixed = (r.cr || 0) > 0 && (r.cr || 0) < r.e;
           const mixSub = isMixed
             ? `<span class="mixte" title="${ci.cruiser ? 'Roule aussi en 20 pouces' : 'Roule aussi en cruiser'}">⇄</span>` : '';
-          const lvl = pilotLevel(r.cat, catRef);
+          const lvl = pilotStatus(r, seasonYear, lrpLevels, catRef);
           const lvlBadge = lvl
-            ? `<span class="rank-badge rank-badge-${lvl}" title="${lvl === 'elite' ? 'Catégorie élite' : 'Catégorie de niveau national'}">${lvl === 'elite' ? 'Élite' : 'National'}</span>` : '';
+            ? `<span class="rank-badge rank-badge-${lvl}" title="${lvl === 'elite' ? 'Pilote élite (liste LRP)' : 'Pilote de niveau national (liste LRP)'}">${lvl === 'elite' ? 'Élite' : 'National'}</span>` : '';
           const age = pilotAge(r, seasonYear);
           const ageCell = age != null
             ? `${age} <span style="color:var(--muted); font-size:11px">ans</span>` : '—';
@@ -700,21 +727,48 @@ footer a:hover{text-decoration:underline}
     }
   }
 
-  // Niveaux (référentiel partagé) en arrière-plan : optionnel, ne bloque pas le tableau.
-  // En prod (GitHub Pages) les repos sont séparés → URL absolue ; en local, fallback relatif.
+  // Données de niveau (référentiel + liste LRP, mêmes repos que Stats Pilote) en
+  // arrière-plan : optionnelles, ne bloquent pas le tableau. En prod (GitHub
+  // Pages) les repos sont séparés → URL absolue ; en local, fallback relatif.
+  function statsBaseUrl() {
+    return window.location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(window.location.hostname)
+      ? '../sqorz_stats'
+      : 'https://ludsoc.github.io/bmx-race-stats';
+  }
+
   async function loadCatRef() {
     try {
-      const baseUrl = window.location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(window.location.hostname)
-        ? '../sqorz_stats'
-        : 'https://ludsoc.github.io/bmx-race-stats';
-      const r = await fetch(`${baseUrl}/categories-ref.json`, { cache: 'no-cache' });
+      const r = await fetch(`${statsBaseUrl()}/categories-ref.json`, { cache: 'no-cache' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       catRef = await r.json();
     } catch (e) {
       catRef = null;
       console.warn('[rankings] categories-ref.json indisponible (optionnel, badges désactivés) :', e && e.message);
     }
-    if (DATA) render(); // repeint les badges/filtre une fois le référentiel en main
+    if (DATA) render(); // repeint badges/filtre une fois le référentiel en main
+  }
+
+  // Liste LRP (pilots-lrp-2026.json) → map nom normalisé -> { level, elite }.
+  // C'est ELLE qui décide du statut national/élite (comme sqorz_stats) ; si elle
+  // n'est pas chargée, le filtre/badge retombent sur le référentiel de catégories.
+  async function loadLrp() {
+    try {
+      const r = await fetch(`${statsBaseUrl()}/pilots-lrp-2026.json`, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      const map = new Map();
+      for (const p of data.pilots || []) {
+        const key = norm(`${p.prenom || ''} ${p.nom || ''}`).trim();
+        if (!key || (p.level !== 'national' && p.level !== 'regional')) continue;
+        const elite = p.categorieFra ? /ELITE/.test(String(p.categorieFra).toUpperCase()) : false;
+        map.set(key, { level: p.level, elite });
+      }
+      lrpLevels = map;
+    } catch (e) {
+      lrpLevels = null;
+      console.warn('[rankings] pilots-lrp-2026.json indisponible (optionnel, statut LRP désactivé) :', e && e.message);
+    }
+    if (DATA) render(); // repeint badges/filtre une fois la liste LRP en main
   }
 
   // --- Thème (convention écosystème) ---
@@ -807,6 +861,7 @@ footer a:hover{text-decoration:underline}
 
   load();
   loadCatRef();
+  loadLrp();
 })();
 </script>
 </body>
