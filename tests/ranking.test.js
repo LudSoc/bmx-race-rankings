@@ -232,13 +232,13 @@ test('pilotAge / matchPilotAge : âge sportif réel', () => {
   assert.equal(H2.matchPilotAge(12, '11'), false, 'la catégorie ne compte plus');
   assert.equal(H2.matchPilotAge(6, '6-'), true);
   assert.equal(H2.matchPilotAge(7, '6-'), false);
-  assert.equal(H2.matchPilotAge(22, '17-22'), true);
-  assert.equal(H2.matchPilotAge(16, '17-22'), false);
-  assert.equal(H2.matchPilotAge(23, '17-22'), false);
-  assert.equal(H2.matchPilotAge(23, '23-39'), true);
-  assert.equal(H2.matchPilotAge(39, '23-39'), true);
-  assert.equal(H2.matchPilotAge(22, '23-39'), false);
-  assert.equal(H2.matchPilotAge(40, '23-39'), false);
+  assert.equal(H2.matchPilotAge(20, '17-24'), true);
+  assert.equal(H2.matchPilotAge(16, '17-24'), false);
+  assert.equal(H2.matchPilotAge(25, '17-24'), false);
+  assert.equal(H2.matchPilotAge(25, '25-29'), true);
+  assert.equal(H2.matchPilotAge(29, '25-29'), true);
+  assert.equal(H2.matchPilotAge(24, '25-29'), false);
+  assert.equal(H2.matchPilotAge(30, '25-29'), false);
   assert.equal(H2.matchPilotAge(30, '30+'), true);
   assert.equal(H2.matchPilotAge(29, '30+'), false);
   assert.equal(H2.matchPilotAge(null, '11'), false);
@@ -260,8 +260,8 @@ test('applyFilters : sexe + âge réel combinables', () => {
   assert.deepEqual(H.applyFilters(rows2, { ...base, sexe: 'H' }).map(r => r.n), ['A', 'D', 'E']);
   assert.deepEqual(H.applyFilters(rows2, { ...base, age: '12' }).map(r => r.n), ['A', 'B', 'C']);
   assert.deepEqual(H.applyFilters(rows2, { ...base, age: '11' }).map(r => r.n), ['E'], '11 ans en U13 retrouvé');
-  assert.deepEqual(H.applyFilters(rows2, { ...base, age: '17-22' }).map(r => r.n), [], '26 ans hors 17-22');
-  assert.deepEqual(H.applyFilters(rows2, { ...base, age: '23-39' }).map(r => r.n), ['D'], '26 ans dans 23-39');
+  assert.deepEqual(H.applyFilters(rows2, { ...base, age: '17-24' }).map(r => r.n), [], '26 ans hors 17-24');
+  assert.deepEqual(H.applyFilters(rows2, { ...base, age: '25-29' }).map(r => r.n), ['D'], '26 ans dans 25-29');
   assert.deepEqual(H.applyFilters(rows2, { ...base, age: '30+' }).map(r => r.n), [], '26 ans hors 30+');
   assert.deepEqual(H.applyFilters(rows2, { ...base, sexe: 'H', age: '11' }).map(r => r.n), ['E']);
   // volume réel : 11 ans ~430, femmes ~1000 (FR + internationales)
@@ -288,18 +288,18 @@ test('applyFilters : âge réel par année', () => {
   assert.deepEqual(H.applyFilters(rows, { ...base, age: '8' }).map(r => r.n), ['C']);
   assert.deepEqual(H.applyFilters(rows, { ...base, age: '12' }).map(r => r.n), ['G']);
   assert.deepEqual(H.applyFilters(rows, { ...base, age: '14' }).map(r => r.n), ['H']);
-  assert.deepEqual(H.applyFilters(rows, { ...base, age: '17-22' }).map(r => r.n), []);
-  assert.deepEqual(H.applyFilters(rows, { ...base, age: '23-39' }).map(r => r.n), ['F'], '24 ans dans 23-39');
+  assert.deepEqual(H.applyFilters(rows, { ...base, age: '17-24' }).map(r => r.n), ['F'], '24 ans dans 17-24');
+  assert.deepEqual(H.applyFilters(rows, { ...base, age: '25-29' }).map(r => r.n), [], '24 ans hors 25-29');
   assert.deepEqual(H.applyFilters(rows, { ...base, age: '30+' }).map(r => r.n), [], '24 ans hors 30+');
   // volumes réels (min 5) : distribution lisse par âge réel
   const n6 = H.applyFilters(j.rows, { ...base, min: 5, age: '6-' }).length;
   const n8 = H.applyFilters(j.rows, { ...base, min: 5, age: '8' }).length;
   const n11 = H.applyFilters(j.rows, { ...base, min: 5, age: '11' }).length;
-  const n1722 = H.applyFilters(j.rows, { ...base, min: 5, age: '17-22' }).length;
+  const n1724 = H.applyFilters(j.rows, { ...base, min: 5, age: '17-24' }).length;
   assert.ok(n6 > 120 && n6 < 260, `6- plausible (${n6})`);
   assert.ok(n8 > 320 && n8 < 500, `8 ans plausible (${n8})`);
   assert.ok(n11 > 350 && n11 < 550, `11 ans plausible (${n11})`);
-  assert.ok(n1722 > 800 && n1722 < 1500, `17-22 plausible (${n1722})`);
+  assert.ok(n1724 > 800 && n1724 < 1500, `17-24 plausible (${n1724})`);
 });
 
 test('rankFmt : ordinal français', () => {

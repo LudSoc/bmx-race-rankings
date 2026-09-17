@@ -246,8 +246,8 @@ footer a:hover{text-decoration:underline}
           <option value="14">14 ans</option>
           <option value="15">15 ans</option>
           <option value="16">16 ans</option>
-          <option value="17-22">17-22 ans</option>
-          <option value="23-39">23-39 ans</option>
+          <option value="17-24">17/24 ans</option>
+          <option value="25-29">25/29 ans</option>
           <option value="30+">30 ans et plus</option>
         </select>
       </div>
@@ -390,8 +390,8 @@ footer a:hover{text-decoration:underline}
     if (!sel) return true;
     if (typeof a !== 'number' || !Number.isFinite(a)) return false;
     if (sel === '6-') return a <= 6;
-    if (sel === '17-22') return a >= 17 && a <= 22;
-    if (sel === '23-39') return a >= 23 && a <= 39;
+    if (sel === '17-24') return a >= 17 && a <= 24;
+    if (sel === '25-29') return a >= 25 && a <= 29;
     if (sel === '30+') return a >= 30;
     return a === parseInt(sel, 10);
   }
@@ -531,7 +531,7 @@ footer a:hover{text-decoration:underline}
     const sexe = p.get('sexe') === 'F' || p.get('sexe') === 'H' ? p.get('sexe') : '';
     const niveau = p.get('niveau') === 'national' || p.get('niveau') === 'elite' ? p.get('niveau') : '';
     const ageRaw = p.get('age') || '';
-    const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17-22', '23-39', '30+'].includes(ageRaw) ? ageRaw : '';
+    const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17-24', '25-29', '30+'].includes(ageRaw) ? ageRaw : '';
     return {
       q: p.get('q') || '', sexe, niveau, age, clubQ: p.get('club') || '',
       min: Math.min(20, Math.max(3, parseInt(p.get('min') || '5', 10) || 5)),
