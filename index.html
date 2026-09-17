@@ -142,6 +142,9 @@ select.control{cursor:pointer}
 .ranking-table tbody tr:hover td{background:var(--accent-soft)}
 .rank-num{font-weight:800; color:var(--accent-hi)}
 .rank-global{font-size:11px; font-weight:400; color:var(--muted); margin-left:4px; white-space:nowrap}
+.rank-badge{display:inline-block; font-size:10px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; padding:1px 6px; border-radius:99px; border:1px solid currentColor; margin-left:5px; vertical-align:1px; white-space:nowrap}
+.rank-badge-national{color:#2b77d4; background:color-mix(in srgb,#2b77d4 11%, transparent)}
+.rank-badge-elite{color:#9a5fd0; background:color-mix(in srgb,#9a5fd0 12%, transparent)}
 .mixte{font-size:11px; color:var(--accent-hi); margin-left:4px; cursor:help; white-space:nowrap}
 tr.pilot-hit td{background:var(--accent-soft)}
 tr.pilot-hit td:first-child{box-shadow:inset 3px 0 0 var(--accent-hi)}
@@ -221,6 +224,14 @@ footer a:hover{text-decoration:underline}
         </select>
       </div>
       <div class="field">
+        <label for="niveauSel">Niveau</label>
+        <select class="control" id="niveauSel">
+          <option value="">Tous</option>
+          <option value="national">National</option>
+          <option value="elite">Élite</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="ageSel">Âge</label>
         <select class="control" id="ageSel">
           <option value="">Tous</option>
@@ -258,7 +269,7 @@ footer a:hover{text-decoration:underline}
       <summary>ℹ️ Comment est calculé ce classement ?</summary>
       <div class="perf-how-body">
         <p>Chaque pilote est noté de 0 à 1000 par son <strong>indice de performance</strong> : places ajustées de la taille et de la force des plateaux, régularité, chronos, le tout ramené vers 500 quand il y a peu de courses. Seules les <strong>courses</strong> comptent (pas les classements de championnats), <strong>toutes sources</strong> : France (Sqorz), Coupes et Championnats d'Europe UEC (JSTiming) et Mondiaux UCI. Le pool est français (licenciés en club : un groupement club en course FR — les étrangers, même vus en France, sont exclus), mais <strong>toutes</strong> les courses de ces pilotes comptent, en France comme à l'international.</p>
-        <p>L'<strong>âge</strong> est l'âge sportif réel (année de saison − année de naissance déduite des engagements) : un garçon de 11 ans qui roule en U13 sort bien dans « 11 ans ». Le <strong>sexe</strong> se lit sur la catégorie dominante (les catégories mixtes sont masquées quand un sexe est choisi). Un pilote qui roule en 20″ et en cruiser est signalé par un badge ⇄. Le <strong>#</strong> est le rang dans le filtre actif, avec le rang général rappelé en petit (référence : seuil d'engagements min, sans les autres filtres — aucun rappel dans la vue par défaut).</p>
+        <p>L'<strong>âge</strong> est l'âge sportif réel (année de saison − année de naissance déduite des engagements) : un garçon de 11 ans qui roule en U13 sort bien dans « 11 ans ». Le <strong>sexe</strong> se lit sur la catégorie dominante (les catégories mixtes sont masquées quand un sexe est choisi). Le <strong>niveau</strong> se lit aussi sur la catégorie dominante : <span class="rank-badge rank-badge-elite">Élite</span> pour les élites (EH/EF, ME/WE, UCI), <span class="rank-badge rank-badge-national">National</span> pour les catégories de niveau national. Un pilote qui roule en 20″ et en cruiser est signalé par un badge ⇄. Le <strong>#</strong> est le rang dans le filtre actif, avec le rang général rappelé en petit (référence : seuil d'engagements min, sans les autres filtres — aucun rappel dans la vue par défaut).</p>
         <p>Détail complet des coefficients : voir la fiche d'un pilote sur <a id="perfHelpLink" href="#">Stats Pilote</a>, encadré « Comment est-il calculé ? ».</p>
       </div>
     </details>
@@ -352,6 +363,22 @@ footer a:hover{text-decoration:underline}
     return { sexe: catSexe(code, label), cruiser: isCruiserCat(code, label) };
   }
 
+  // Niveau pilote (testable) : 'elite' | 'national' | ''.
+  // Élite = tranches Elite Homme/Femme (EH/EF, ME/WE, UCI) hors "Élite Régionale" (régionaux).
+  // National = autres catégories de niveau national (CdF zones, championnats).
+  function pilotLevel(code, ref) {
+    if (!ref || !code) return '';
+    const sections = ['categories', 'categoriesUec', 'categoriesUci', 'categoriesWorldCup'];
+    for (const src of sections) {
+      const e = (ref[src] || {})[code];
+      if (!e || !e.level) continue;
+      if ((e.trancheKey === 'eh' || e.trancheKey === 'ef') && e.level !== 'regional') return 'elite';
+      if (e.level === 'national') return 'national';
+      return '';
+    }
+    return '';
+  }
+
   // Âge sportif réel : année de saison − année de naissance (champ `by` du build).
   // Sans `by` (données anciennes), le pilote est exclu dès qu'un âge est choisi.
   function pilotAge(r, seasonYear) {
@@ -405,6 +432,7 @@ footer a:hover{text-decoration:underline}
         const info = f.catInfoOf ? f.catInfoOf(r.cat) : null;
         if (!info || info.sexe !== f.sexe) return false;
       }
+      if (f.niveau && (!f.levelOf || f.levelOf(r.cat) !== f.niveau)) return false;
       if (f.age && !matchPilotAge(pilotAge(r, f.seasonYear), f.age)) return false;
       if (f.favKeys && !f.favKeys.has(normStr(r.n))) return false;
       if (cq && !(clubKey(r.club).includes(cq) || normStr(f.clubNameOf ? f.clubNameOf(r.club) : '').includes(cq))) return false;
@@ -438,9 +466,10 @@ footer a:hover{text-decoration:underline}
   // --- État ---
   let DATA = null;      // { _meta, cats, rows }
   let CLUBS = {};       // CODE -> {name, city}
+  let catRef = null;    // sqorz_stats/categories-ref.json (niveaux) — optionnel, chargé en arrière-plan
   let shown = 100;
   const PAGE = 100;
-  const state = { q: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false };
+  const state = { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 5, favOnly: false };
   let pendingScroll = false; // Entrée (ou ?q= au chargement) : sauter à la correspondance
   let hitCursor = 0;         // Entrées successives : occurrence suivante
 
@@ -450,6 +479,7 @@ footer a:hover{text-decoration:underline}
   let suggList = [];
   let suggIdx = -1;
   const sexeSel = document.getElementById('sexeSel');
+  const niveauSel = document.getElementById('niveauSel');
   const ageSel = document.getElementById('ageSel');
   const clubInp = document.getElementById('clubInp');
   const minSel = document.getElementById('minSel');
@@ -499,10 +529,11 @@ footer a:hover{text-decoration:underline}
   function parseUrlState() {
     const p = new URLSearchParams(location.search);
     const sexe = p.get('sexe') === 'F' || p.get('sexe') === 'H' ? p.get('sexe') : '';
+    const niveau = p.get('niveau') === 'national' || p.get('niveau') === 'elite' ? p.get('niveau') : '';
     const ageRaw = p.get('age') || '';
     const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17-22', '23-39', '30+'].includes(ageRaw) ? ageRaw : '';
     return {
-      q: p.get('q') || '', sexe, age, clubQ: p.get('club') || '',
+      q: p.get('q') || '', sexe, niveau, age, clubQ: p.get('club') || '',
       min: Math.min(20, Math.max(3, parseInt(p.get('min') || '5', 10) || 5)),
       favOnly: p.get('fav') === '1',
     };
@@ -510,7 +541,7 @@ footer a:hover{text-decoration:underline}
   function pushUrlState() {
     const u = new URL(location.href);
     const set = (k, v, dflt) => { (v && v !== dflt) ? u.searchParams.set(k, v) : u.searchParams.delete(k); };
-    set('q', state.q.trim(), ''); set('sexe', state.sexe, ''); set('age', state.age, '');
+    set('q', state.q.trim(), ''); set('sexe', state.sexe, ''); set('niveau', state.niveau, ''); set('age', state.age, '');
     set('club', state.clubQ.trim(), '');
     set('min', String(state.min), '5');
     state.favOnly ? u.searchParams.set('fav', '1') : u.searchParams.delete('fav');
@@ -540,12 +571,13 @@ footer a:hover{text-decoration:underline}
   function filterArgs(over) {
     const cats = (DATA && DATA.cats) || {};
     return Object.assign({
-      q: state.q, sexe: state.sexe, age: state.age,
+      q: state.q, sexe: state.sexe, niveau: state.niveau, age: state.age,
       seasonYear: parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null,
       clubQ: state.clubQ, min: state.min,
       favKeys: state.favOnly ? favKeys() : null,
       clubNameOf,
       catInfoOf: code => catInfo(code, cats[code] || ''),
+      levelOf: code => pilotLevel(code, catRef),
     }, over);
   }
 
@@ -564,7 +596,7 @@ footer a:hover{text-decoration:underline}
     const list = rows.slice(0, shown);
     const franks = stdRanks(rows); // rang dans le filtre actif (les lignes filtrées gardent l'ordre trié)
     const refRanks = stdRanks(applyFilters(DATA.rows,
-      filterArgs({ sexe: '', age: '', clubQ: '', favKeys: null })));
+      filterArgs({ sexe: '', niveau: '', age: '', clubQ: '', favKeys: null })));
     if (!list.length) {
       tableWrap.innerHTML = `<div class="empty-state">Aucun pilote pour ces filtres. <button class="btn btn-ghost" id="emptyReset" type="button">Réinitialiser</button></div>`;
       const b = document.getElementById('emptyReset');
@@ -581,6 +613,9 @@ footer a:hover{text-decoration:underline}
           const isMixed = (r.cr || 0) > 0 && (r.cr || 0) < r.e;
           const mixSub = isMixed
             ? `<span class="mixte" title="${ci.cruiser ? 'Roule aussi en 20 pouces' : 'Roule aussi en cruiser'}">⇄</span>` : '';
+          const lvl = pilotLevel(r.cat, catRef);
+          const lvlBadge = lvl
+            ? `<span class="rank-badge rank-badge-${lvl}" title="${lvl === 'elite' ? 'Catégorie élite' : 'Catégorie de niveau national'}">${lvl === 'elite' ? 'Élite' : 'National'}</span>` : '';
           const age = pilotAge(r, seasonYear);
           const ageCell = age != null
             ? `${age} <span style="color:var(--muted); font-size:11px">ans</span>` : '—';
@@ -589,7 +624,7 @@ footer a:hover{text-decoration:underline}
           const anchor = i === target ? ' id="pilotHit"' : '';
           return `<tr${anchor}${hit}>
           <td><span class="rank-num" title="Rang dans le filtre actif">${fr ?? '—'}</span>${sub}</td>
-          <td><a class="pilot-link" href="${pilotUrl(r.n)}">${escape(r.n)}</a>${mixSub}</td>
+          <td><a class="pilot-link" href="${pilotUrl(r.n)}">${escape(r.n)}</a>${lvlBadge}${mixSub}</td>
           <td>${r.club ? `<a class="club-link" href="${clubUrl(r.club)}" title="${escape(clubNameOf(r.club))}">${escape(r.club)}</a>` : '<span style="color:var(--muted)">—</span>'}</td>
           <td title="${ageTitle}">${ageCell}</td>
           <td>${r.e}</td>
@@ -622,18 +657,18 @@ footer a:hover{text-decoration:underline}
   }
 
   function syncInputs() {
-    qInp.value = state.q; sexeSel.value = state.sexe; ageSel.value = state.age;
+    qInp.value = state.q; sexeSel.value = state.sexe; niveauSel.value = state.niveau; ageSel.value = state.age;
     clubInp.value = state.clubQ;
     minSel.value = String(state.min);
   }
   function readInputs() {
-    state.q = qInp.value; state.sexe = sexeSel.value; state.age = ageSel.value;
+    state.q = qInp.value; state.sexe = sexeSel.value; state.niveau = niveauSel.value; state.age = ageSel.value;
     state.clubQ = clubInp.value;
     state.min = parseInt(minSel.value, 10) || 5;
     shown = PAGE;
   }
   function resetFilters() {
-    Object.assign(state, { q: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false });
+    Object.assign(state, { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 5, favOnly: false });
     shown = PAGE; syncInputs(); pushUrlState(); render();
   }
 
@@ -663,6 +698,23 @@ footer a:hover{text-decoration:underline}
       tableWrap.innerHTML = `<div class="empty-state">Échec du chargement. <button class="btn" id="retryBtn" type="button">Réessayer</button></div>`;
       document.getElementById('retryBtn').addEventListener('click', load);
     }
+  }
+
+  // Niveaux (référentiel partagé) en arrière-plan : optionnel, ne bloque pas le tableau.
+  // En prod (GitHub Pages) les repos sont séparés → URL absolue ; en local, fallback relatif.
+  async function loadCatRef() {
+    try {
+      const baseUrl = window.location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(window.location.hostname)
+        ? '../sqorz_stats'
+        : 'https://ludsoc.github.io/bmx-race-stats';
+      const r = await fetch(`${baseUrl}/categories-ref.json`, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      catRef = await r.json();
+    } catch (e) {
+      catRef = null;
+      console.warn('[rankings] categories-ref.json indisponible (optionnel, badges désactivés) :', e && e.message);
+    }
+    if (DATA) render(); // repeint les badges/filtre une fois le référentiel en main
   }
 
   // --- Thème (convention écosystème) ---
@@ -741,6 +793,7 @@ footer a:hover{text-decoration:underline}
     debounce = setTimeout(() => { readInputs(); pushUrlState(); render(); }, 150);
   });
   sexeSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
+  niveauSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   ageSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   minSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   favBtn.addEventListener('click', () => { state.favOnly = !state.favOnly; shown = PAGE; pushUrlState(); render(); });
@@ -753,6 +806,7 @@ footer a:hover{text-decoration:underline}
   });
 
   load();
+  loadCatRef();
 })();
 </script>
 </body>

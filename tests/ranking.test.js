@@ -23,6 +23,7 @@ const harness = [
   block('function catSexe(code, label) {'),
   block('function isCruiserCat(code, label) {'),
   block('function catInfo(code, label) {'),
+  block('function pilotLevel(code, ref) {'),
   block('function pilotAge(r, seasonYear) {'),
   block('function matchPilotAge(a, sel) {'),
   block('function pilotSuggestions(rows, q, limit = 8) {'),
@@ -31,15 +32,16 @@ const harness = [
   block('function stdRanks(rows) {'),
   block('function rankFmt(n) {'),
   block('function trendLabel(t) {'),
-].join('\n') + '\nreturn { normStr, clubKey, isoFr, catSexe, isCruiserCat, catInfo, pilotAge, matchPilotAge, pilotSuggestions, locateHits, applyFilters, stdRanks, rankFmt, trendLabel };';
+].join('\n') + '\nreturn { normStr, clubKey, isoFr, catSexe, isCruiserCat, catInfo, pilotLevel, pilotAge, matchPilotAge, pilotSuggestions, locateHits, applyFilters, stdRanks, rankFmt, trendLabel };';
 const H = new Function(harness)();
 const H2src = [
   block('function catSexe(code, label) {'),
   block('function isCruiserCat(code, label) {'),
   block('function catInfo(code, label) {'),
+  block('function pilotLevel(code, ref) {'),
   block('function pilotAge(r, seasonYear) {'),
   block('function matchPilotAge(a, sel) {'),
-].join('\n') + '\nreturn { catSexe, isCruiserCat, catInfo, pilotAge, matchPilotAge };';
+].join('\n') + '\nreturn { catSexe, isCruiserCat, catInfo, pilotLevel, pilotAge, matchPilotAge };';
 const H2 = new Function(H2src)();
 
 const ROWS = [
@@ -138,6 +140,81 @@ test('isCruiserCat : code CR* ou libellé', () => {
   assert.equal(H2.isCruiserCat('CRH4044R', 'CRUISER 40 ANS ET +'), true);
   assert.equal(H2.isCruiserCat('U13GR', 'U13 GARÇON'), false);
   assert.equal(H2.isCruiserCat('MA30+', 'Masters 30+'), false);
+});
+
+test('pilotLevel : élite vs national vs rien (référentiel)', () => {
+  const ref = {
+    categories: {
+      EH: { trancheKey: 'eh', level: 'national' },
+      EF: { trancheKey: 'ef', level: 'national' },
+      EHR: { trancheKey: 'eh', level: 'regional' },
+      H1724N: { trancheKey: 'm17-24', level: 'national' },
+      H1724R: { trancheKey: 'm17-24', level: 'regional' },
+      G16N: { trancheKey: 'gU17', level: 'national' },
+      U13GR: { trancheKey: 'gU13', level: 'regional' },
+    },
+    categoriesUec: {
+      ME: { trancheKey: 'eh', level: 'uec' },
+      WE: { trancheKey: 'ef', level: 'uec' },
+      B13: { trancheKey: 'gU15', level: 'uec' },
+      C30: { trancheKey: 'crM30-39', level: 'uec' },
+    },
+    categoriesUci: {},
+    categoriesWorldCup: {
+      ME: { trancheKey: 'eh', level: 'uci' },
+    },
+  };
+  assert.equal(H2.pilotLevel('EH', ref), 'elite', 'élite FR (tranche eh)');
+  assert.equal(H2.pilotLevel('EF', ref), 'elite', 'élite FR (tranche ef)');
+  assert.equal(H2.pilotLevel('ME', ref), 'elite', 'Men Elite UEC');
+  assert.equal(H2.pilotLevel('WE', ref), 'elite', 'Women Elite UEC');
+  assert.equal(H2.pilotLevel('ME', { categories: {}, categoriesUec: {}, categoriesUci: {}, categoriesWorldCup: ref.categoriesWorldCup }), 'elite', 'ME UCI en dernier recours');
+  assert.equal(H2.pilotLevel('H1724N', ref), 'national', 'niveau national');
+  assert.equal(H2.pilotLevel('G16N', ref), 'national', 'U17 championnat national');
+  assert.equal(H2.pilotLevel('EHR', ref), '', 'Élite Régionale exclue');
+  assert.equal(H2.pilotLevel('H1724R', ref), '', 'régional : rien');
+  assert.equal(H2.pilotLevel('U13GR', ref), '', 'départemental/régional : rien');
+  assert.equal(H2.pilotLevel('B13', ref), '', 'UEC non élite : rien');
+  assert.equal(H2.pilotLevel('C30', ref), '', 'UEC cruiser : rien');
+  assert.equal(H2.pilotLevel('INCONNU', ref), '', 'inconnu : rien');
+  assert.equal(H2.pilotLevel('', ref), '', 'vide : rien');
+  assert.equal(H2.pilotLevel('EH', null), '', 'sans référentiel : rien');
+});
+
+test('applyFilters : niveau (élite / national) sur la catégorie dominante', () => {
+  const ref = {
+    categories: { EH: { trancheKey: 'eh', level: 'national' }, H1724N: { trancheKey: 'm17-24', level: 'national' }, U13GR: { trancheKey: 'gU13', level: 'regional' } },
+    categoriesUec: {}, categoriesUci: {}, categoriesWorldCup: {},
+  };
+  const levelOf = code => H.pilotLevel(code, ref);
+  const rows = [
+    { n: 'Élite A', club: '', cat: 'EH', e: 5, score: 900, trend: 0, by: 2000 },
+    { n: 'National B', club: '', cat: 'H1724N', e: 5, score: 700, trend: 0, by: 2000 },
+    { n: 'Régional C', club: '', cat: 'U13GR', e: 5, score: 600, trend: 0, by: 2014 },
+  ];
+  const base = { q: '', sexe: '', niveau: '', age: '', clubQ: '', min: 3, favKeys: null, clubNameOf: () => '', levelOf };
+  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'elite' }).map(r => r.n), ['Élite A']);
+  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'national' }).map(r => r.n), ['National B']);
+  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: '' }).map(r => r.n), ['Élite A', 'National B', 'Régional C'], 'Tous');
+  assert.deepEqual(H.applyFilters(rows, { ...base, niveau: 'elite' }).length +
+    H.applyFilters(rows, { ...base, niveau: 'national' }).length, 2, 'partition disjointe');
+});
+
+test('pilotLevel sur données réelles : volumes élite/national plausibles', t => {
+  const refPath = path.join(__dirname, '..', '..', 'sqorz_stats', 'categories-ref.json');
+  if (!fs.existsSync(refPath)) {
+    t.skip('sqorz_stats/categories-ref.json absent (repo local uniquement)');
+    return;
+  }
+  const ref = JSON.parse(fs.readFileSync(refPath, 'utf8'));
+  const j = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'perf-rankings.json'), 'utf8'));
+  const levelOf = code => H.pilotLevel(code, ref);
+  const elite = j.rows.filter(r => levelOf(r.cat) === 'elite');
+  const national = j.rows.filter(r => levelOf(r.cat) === 'national');
+  assert.ok(elite.length >= 100 && elite.length <= 250, `élite plausible (${elite.length})`);
+  assert.ok(national.length >= 1300 && national.length <= 1800, `national plausible (${national.length})`);
+  assert.ok(elite.every(r => levelOf(r.cat) === 'elite') && national.every(r => levelOf(r.cat) === 'national'));
+  assert.equal(elite.filter(r => ['EH', 'EF', 'ME', 'WE'].includes(r.cat)).length, elite.length, 'élite = EH/EF/ME/WE uniquement');
 });
 
 test('perf-rankings.json : champ by (année de naissance) complet', () => {
