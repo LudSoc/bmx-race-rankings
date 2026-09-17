@@ -109,54 +109,6 @@ input.control{width:200px; max-width:100%}
 .sugg-item small{color:var(--muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .sugg-item.active{background:var(--accent-soft)}
 select.control{cursor:pointer}
-
-/* Sélecteur de catégorie custom (liste + vignettes de niveau) */
-.cat-selector{position:relative; width:230px; max-width:100%}
-.cat-selector-summary{
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  width:100%; font:inherit; font-size:13.5px; font-weight:500; color:var(--ink);
-  text-align:left; cursor:pointer; padding:9px 12px;
-  background:var(--card-soft); border:1px solid var(--line); border-radius:10px;
-  user-select:none; transition:border-color .15s, box-shadow .15s, background .15s;
-}
-.cat-selector-summary:hover{border-color:var(--accent)}
-.cat-selector-summary:focus-visible{outline:2px solid var(--accent-hi); outline-offset:2px}
-.cat-selector-summary[aria-expanded="true"]{border-color:var(--accent)}
-.cat-selector-chev{color:var(--muted); transition:transform .15s}
-.cat-selector-summary[aria-expanded="true"] .cat-selector-chev{transform:rotate(180deg)}
-.cat-selector-panel{
-  position:absolute; z-index:30; left:0; right:0; top:calc(100% + 6px);
-  background:var(--card); border:1px solid var(--line-strong); border-radius:10px;
-  box-shadow:var(--shadow); overflow:hidden;
-}
-.cat-selector-panel[hidden]{display:none}
-.cat-selector-filter{
-  width:100%; box-sizing:border-box;
-  font:inherit; font-size:12.5px; color:var(--ink);
-  padding:9px 12px; border:none; border-bottom:1px solid var(--line);
-  background:var(--card-soft);
-}
-.cat-selector-filter:focus{outline:none}
-.cat-selector-list{max-height:280px; overflow-y:auto; padding:4px}
-.cat-selector-option{
-  display:block; width:100%; text-align:left;
-  font:inherit; cursor:pointer; padding:7px 10px;
-  border:none; background:transparent; border-radius:7px;
-  transition:background .1s;
-}
-.cat-selector-option:hover{background:color-mix(in srgb,var(--accent) 9%, transparent)}
-.cat-selector-option:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
-.cat-selector-option.selected{background:color-mix(in srgb,var(--accent) 16%, transparent)}
-.cat-selector-name{font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:baseline; gap:8px}
-.cat-selector-name .cat-code{font-size:10.5px; font-weight:600; color:var(--muted)}
-.cat-level-badge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:1px 7px;border-radius:99px;border:1px solid currentColor;line-height:1.5}
-.cat-level-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.cat-level-national{color:#4e80ee;background:color-mix(in srgb,#4e80ee 10%,transparent)}
-.cat-level-regional{color:#2bb3a3;background:color-mix(in srgb,#2bb3a3 12%,transparent)}
-.cat-level-departemental{color:#b98a2e;background:color-mix(in srgb,#b98a2e 14%,transparent)}
-.cat-level-uec{color:#9a6ff0;background:color-mix(in srgb,#9a6ff0 12%,transparent)}
-.cat-level-uci{color:#e06b8a;background:color-mix(in srgb,#e06b8a 12%,transparent)}
-.cat-selector-empty{padding:10px; font-size:12.5px; color:var(--muted)}
 .btn{
   font:inherit; font-size:13px; font-weight:700; cursor:pointer;
   padding:9px 16px; border-radius:10px; border:1px solid var(--line);
@@ -221,7 +173,6 @@ footer a:hover{text-decoration:underline}
   .topbar h1{font-size:26px}
   main{padding:0 16px 24px}
   input.control{width:100%}
-  .cat-selector{width:100%}
   .field{flex:1 1 140px}
 }
 </style>
@@ -262,20 +213,6 @@ footer a:hover{text-decoration:underline}
         </div>
       </div>
       <div class="field">
-        <label for="catSel">Catégorie</label>
-        <div class="cat-selector">
-          <button type="button" class="cat-selector-summary" id="catSel" aria-expanded="false" aria-controls="catSelPanel" aria-haspopup="listbox">
-            <span id="catSelValue">Toutes</span>
-            <span class="cat-selector-chev" aria-hidden="true">▾</span>
-          </button>
-          <div class="cat-selector-panel" id="catSelPanel" hidden>
-            <input type="search" id="catSelFilter" class="cat-selector-filter" placeholder="Filtrer les catégories…" autocomplete="off" aria-label="Filtrer les catégories">
-            <div class="cat-selector-list" id="catSelList" role="listbox" aria-label="Catégories"></div>
-            <div class="cat-selector-empty" id="catSelEmpty" hidden>Aucune catégorie trouvée.</div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
         <label for="sexeSel">Sexe</label>
         <select class="control" id="sexeSel">
           <option value="">Tous</option>
@@ -298,7 +235,9 @@ footer a:hover{text-decoration:underline}
           <option value="14">14 ans</option>
           <option value="15">15 ans</option>
           <option value="16">16 ans</option>
-          <option value="17+">17 ans et plus</option>
+          <option value="17-22">17-22 ans</option>
+          <option value="23-39">23-39 ans</option>
+          <option value="30+">30 ans et plus</option>
         </select>
       </div>
       <div class="field">
@@ -413,41 +352,6 @@ footer a:hover{text-decoration:underline}
     return { sexe: catSexe(code, label), cruiser: isCruiserCat(code, label) };
   }
 
-  // --- Référentiel catégories (niveaux) — optionnel, chargé en arrière-plan ---
-  const REF_LEVEL_LABELS = { national: 'National', regional: 'Régional', departemental: 'Départemental', uec: 'UEC', uci: 'UCI' };
-  let catRef = null;
-
-  // Niveau d'un code de catégorie : FR d'abord, puis UEC, Mondiaux, Coupe du monde.
-  function refLevelFor(code) {
-    if (!catRef || !code) return '';
-    const sections = ['categories', 'categoriesUec', 'categoriesUci', 'categoriesWorldCup'];
-    for (const src of sections) {
-      const entry = catRef[src] && catRef[src][code];
-      if (entry && entry.level) return entry.level;
-    }
-    return '';
-  }
-
-  async function loadCatRef() {
-    try {
-      // En prod (GitHub Pages), les repos sont séparés — résolution absolue.
-      // En local (file:// ou 127.0.0.1), fallback relatif depuis sqorz_tools/ranking_stats/.
-      const baseUrl = window.location.protocol === 'file:' || /^(127\.0\.0\.1|localhost)$/.test(window.location.hostname)
-        ? '../sqorz_stats'
-        : 'https://ludsoc.github.io/bmx-race-stats';
-      const r = await fetch(`${baseUrl}/categories-ref.json`, { cache: 'no-cache' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      catRef = await r.json();
-    } catch (e) {
-      catRef = null;
-      console.warn('[rankings] categories-ref.json indisponible (optionnel) :', e && e.message);
-      return;
-    }
-    fillCatSel();
-    if (!state.cat || !catCodes.includes(state.cat)) state.cat = '';
-    syncInputs();
-  }
-
   // Âge sportif réel : année de saison − année de naissance (champ `by` du build).
   // Sans `by` (données anciennes), le pilote est exclu dès qu'un âge est choisi.
   function pilotAge(r, seasonYear) {
@@ -458,8 +362,10 @@ footer a:hover{text-decoration:underline}
   function matchPilotAge(a, sel) {
     if (!sel) return true;
     if (typeof a !== 'number' || !Number.isFinite(a)) return false;
-    if (sel === '17+') return a >= 17;
     if (sel === '6-') return a <= 6;
+    if (sel === '17-22') return a >= 17 && a <= 22;
+    if (sel === '23-39') return a >= 23 && a <= 39;
+    if (sel === '30+') return a >= 30;
     return a === parseInt(sel, 10);
   }
 
@@ -489,13 +395,12 @@ footer a:hover{text-decoration:underline}
   }
 
   // --- Filtrage pur (testable) ---
-  // rows: [{n, club, cat, e, score, cr?, by?}], f: {q ignoré (localisation, voir locateHits), cat, clubQ, min, sexe, age, seasonYear, favKeys:Set|null, catInfoOf(code)->{sexe,cruiser}|null}
+  // rows: [{n, club, cat, e, score, cr?, by?}], f: {q ignoré (localisation, voir locateHits), clubQ, min, sexe, age, seasonYear, favKeys:Set|null, catInfoOf(code)->{sexe,cruiser}|null}
   // Âge = âge sportif réel (by), sexe = catégorie dominante.
   function applyFilters(rows, f) {
     const cq = normStr(f.clubQ);
     return rows.filter(r => {
       if (r.e < f.min) return false;
-      if (f.cat && r.cat !== f.cat) return false;
       if (f.sexe) {
         const info = f.catInfoOf ? f.catInfoOf(r.cat) : null;
         if (!info || info.sexe !== f.sexe) return false;
@@ -535,7 +440,7 @@ footer a:hover{text-decoration:underline}
   let CLUBS = {};       // CODE -> {name, city}
   let shown = 100;
   const PAGE = 100;
-  const state = { q: '', cat: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false };
+  const state = { q: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false };
   let pendingScroll = false; // Entrée (ou ?q= au chargement) : sauter à la correspondance
   let hitCursor = 0;         // Entrées successives : occurrence suivante
 
@@ -544,13 +449,6 @@ footer a:hover{text-decoration:underline}
   const qSugg = document.getElementById('qSugg');
   let suggList = [];
   let suggIdx = -1;
-  const catSel = document.getElementById('catSel');
-  const catSelValue = document.getElementById('catSelValue');
-  const catSelPanel = document.getElementById('catSelPanel');
-  const catSelFilter = document.getElementById('catSelFilter');
-  const catSelList = document.getElementById('catSelList');
-  const catSelEmpty = document.getElementById('catSelEmpty');
-  let catCodes = []; // codes de catégorie triés (niveau, puis alpha)
   const sexeSel = document.getElementById('sexeSel');
   const ageSel = document.getElementById('ageSel');
   const clubInp = document.getElementById('clubInp');
@@ -602,9 +500,9 @@ footer a:hover{text-decoration:underline}
     const p = new URLSearchParams(location.search);
     const sexe = p.get('sexe') === 'F' || p.get('sexe') === 'H' ? p.get('sexe') : '';
     const ageRaw = p.get('age') || '';
-    const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17+'].includes(ageRaw) ? ageRaw : '';
+    const age = ['6-', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17-22', '23-39', '30+'].includes(ageRaw) ? ageRaw : '';
     return {
-      q: p.get('q') || '', cat: p.get('cat') || '', sexe, age, clubQ: p.get('club') || '',
+      q: p.get('q') || '', sexe, age, clubQ: p.get('club') || '',
       min: Math.min(20, Math.max(3, parseInt(p.get('min') || '5', 10) || 5)),
       favOnly: p.get('fav') === '1',
     };
@@ -612,7 +510,7 @@ footer a:hover{text-decoration:underline}
   function pushUrlState() {
     const u = new URL(location.href);
     const set = (k, v, dflt) => { (v && v !== dflt) ? u.searchParams.set(k, v) : u.searchParams.delete(k); };
-    set('q', state.q.trim(), ''); set('cat', state.cat, ''); set('sexe', state.sexe, ''); set('age', state.age, '');
+    set('q', state.q.trim(), ''); set('sexe', state.sexe, ''); set('age', state.age, '');
     set('club', state.clubQ.trim(), '');
     set('min', String(state.min), '5');
     state.favOnly ? u.searchParams.set('fav', '1') : u.searchParams.delete('fav');
@@ -642,7 +540,7 @@ footer a:hover{text-decoration:underline}
   function filterArgs(over) {
     const cats = (DATA && DATA.cats) || {};
     return Object.assign({
-      q: state.q, cat: state.cat, sexe: state.sexe, age: state.age,
+      q: state.q, sexe: state.sexe, age: state.age,
       seasonYear: parseInt(((DATA && DATA._meta && DATA._meta.windowTo) || '').slice(0, 4), 10) || null,
       clubQ: state.clubQ, min: state.min,
       favKeys: state.favOnly ? favKeys() : null,
@@ -666,7 +564,7 @@ footer a:hover{text-decoration:underline}
     const list = rows.slice(0, shown);
     const franks = stdRanks(rows); // rang dans le filtre actif (les lignes filtrées gardent l'ordre trié)
     const refRanks = stdRanks(applyFilters(DATA.rows,
-      filterArgs({ cat: '', sexe: '', age: '', clubQ: '', favKeys: null })));
+      filterArgs({ sexe: '', age: '', clubQ: '', favKeys: null })));
     if (!list.length) {
       tableWrap.innerHTML = `<div class="empty-state">Aucun pilote pour ces filtres. <button class="btn btn-ghost" id="emptyReset" type="button">Réinitialiser</button></div>`;
       const b = document.getElementById('emptyReset');
@@ -724,72 +622,9 @@ footer a:hover{text-decoration:underline}
   }
 
   function syncInputs() {
-    qInp.value = state.q; catSelValue.innerHTML = catCaption(state.cat); sexeSel.value = state.sexe; ageSel.value = state.age;
+    qInp.value = state.q; sexeSel.value = state.sexe; ageSel.value = state.age;
     clubInp.value = state.clubQ;
     minSel.value = String(state.min);
-    paintCatSel();
-  }
-  // Libellé (avec vignette de niveau) affiché dans le bouton du sélecteur.
-  function catCaption(code) {
-    if (!DATA || !code) return 'Toutes';
-    const catNames = DATA.cats || {};
-    const lvl = refLevelFor(code);
-    const badge = lvl ? ` <span class="cat-level-badge cat-level-${lvl}">${escape(REF_LEVEL_LABELS[lvl] || lvl)}</span>` : '';
-    return escape(catNames[code] || code) + (lvl ? badge : '');
-  }
-  // Liste des catégories du classement, triées par niveau puis alphabétiquement.
-  function fillCatSel() {
-    if (!DATA) return;
-    const lvlOrder = { departemental: 0, regional: 1, national: 2, uec: 3, uci: 4 };
-    catCodes = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))];
-    catCodes.sort((a, b) => {
-      const la = refLevelFor(a) in lvlOrder ? lvlOrder[refLevelFor(a)] : 99;
-      const lb = refLevelFor(b) in lvlOrder ? lvlOrder[refLevelFor(b)] : 99;
-      if (la !== lb) return la - lb;
-      return a.localeCompare(b, 'fr', { sensitivity: 'base' });
-    });
-    paintCatSel();
-  }
-  function paintCatSel() {
-    const catNames = (DATA && DATA.cats) || {};
-    const q = (catSelFilter.value || '').trim();
-    const nq = norm(q);
-    const matches = nq
-      ? catCodes.filter(c => {
-          const hay = ((catNames[c] || '') + ' ' + c + ' ' + (REF_LEVEL_LABELS[refLevelFor(c)] || '')).toLowerCase();
-          return hay.includes(nq);
-        })
-      : catCodes;
-    catSelList.innerHTML = '<button type="button" class="cat-selector-option" role="option" data-code=""' +
-      (state.cat === '' ? ' aria-selected="true"' : '') + '><span class="cat-selector-name">Toutes</span></button>' +
-      matches.map(c => {
-        const lvl = refLevelFor(c);
-        const badge = lvl ? ` <span class="cat-level-badge cat-level-${lvl}">${escape(REF_LEVEL_LABELS[lvl] || lvl)}</span>` : '';
-        const sel = c === state.cat;
-        return `<button type="button" class="cat-selector-option${sel ? ' selected' : ''}" role="option" data-code="${escape(c)}"${sel ? ' aria-selected="true"' : ''}>` +
-          `<span class="cat-selector-name"><span>${escape(catNames[c] || c)}</span> <span class="cat-code">(${escape(c)})</span>${badge}</span></button>`;
-      }).join('');
-    catSelEmpty.hidden = matches.length > 0;
-  }
-  function openCatSel() {
-    catSelFilter.value = '';
-    paintCatSel();
-    catSelPanel.hidden = false;
-    catSel.setAttribute('aria-expanded', 'true');
-    catSelFilter.focus();
-  }
-  function closeCatSel() {
-    catSelPanel.hidden = true;
-    catSel.setAttribute('aria-expanded', 'false');
-  }
-  function selectCat(code) {
-    state.cat = code;
-    catSelValue.innerHTML = catCaption(code);
-    closeCatSel();
-    paintCatSel();
-    readInputs();
-    pushUrlState();
-    render();
   }
   function readInputs() {
     state.q = qInp.value; state.sexe = sexeSel.value; state.age = ageSel.value;
@@ -798,7 +633,7 @@ footer a:hover{text-decoration:underline}
     shown = PAGE;
   }
   function resetFilters() {
-    Object.assign(state, { q: '', cat: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false });
+    Object.assign(state, { q: '', sexe: '', age: '', clubQ: '', min: 5, favOnly: false });
     shown = PAGE; syncInputs(); pushUrlState(); render();
   }
 
@@ -811,7 +646,6 @@ footer a:hover{text-decoration:underline}
       ]);
       DATA = rj;
       CLUBS = (cj && cj.mapping) || {};
-      fillCatSel();
       minSel.innerHTML = [3, 4, 5, 8, 10, 15, 20].map(m =>
         `<option value="${m}"${m === state.min ? ' selected' : ''}>${m}+</option>`).join('');
       Object.assign(state, parseUrlState());
@@ -906,21 +740,6 @@ footer a:hover{text-decoration:underline}
     clearTimeout(debounce);
     debounce = setTimeout(() => { readInputs(); pushUrlState(); render(); }, 150);
   });
-  catSel.addEventListener('click', () => { if (catSelPanel.hidden) openCatSel(); else closeCatSel(); });
-  catSel.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); catSel.click(); }
-  });
-  catSelFilter.addEventListener('input', paintCatSel);
-  catSelFilter.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); closeCatSel(); }
-  });
-  catSelList.addEventListener('click', e => {
-    const btn = e.target.closest('.cat-selector-option');
-    if (btn) selectCat(btn.dataset.code || '');
-  });
-  document.addEventListener('click', e => {
-    if (!catSelPanel.hidden && !e.target.closest('.cat-selector')) closeCatSel();
-  });
   sexeSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   ageSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   minSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
@@ -934,7 +753,6 @@ footer a:hover{text-decoration:underline}
   });
 
   load();
-  loadCatRef();
 })();
 </script>
 </body>
