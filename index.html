@@ -109,6 +109,54 @@ input.control{width:200px; max-width:100%}
 .sugg-item small{color:var(--muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .sugg-item.active{background:var(--accent-soft)}
 select.control{cursor:pointer}
+
+/* Sélecteur de catégorie custom (liste + vignettes de niveau) */
+.cat-selector{position:relative; width:230px; max-width:100%}
+.cat-selector-summary{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  width:100%; font:inherit; font-size:13.5px; font-weight:500; color:var(--ink);
+  text-align:left; cursor:pointer; padding:9px 12px;
+  background:var(--card-soft); border:1px solid var(--line); border-radius:10px;
+  user-select:none; transition:border-color .15s, box-shadow .15s, background .15s;
+}
+.cat-selector-summary:hover{border-color:var(--accent)}
+.cat-selector-summary:focus-visible{outline:2px solid var(--accent-hi); outline-offset:2px}
+.cat-selector-summary[aria-expanded="true"]{border-color:var(--accent)}
+.cat-selector-chev{color:var(--muted); transition:transform .15s}
+.cat-selector-summary[aria-expanded="true"] .cat-selector-chev{transform:rotate(180deg)}
+.cat-selector-panel{
+  position:absolute; z-index:30; left:0; right:0; top:calc(100% + 6px);
+  background:var(--card); border:1px solid var(--line-strong); border-radius:10px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.cat-selector-panel[hidden]{display:none}
+.cat-selector-filter{
+  width:100%; box-sizing:border-box;
+  font:inherit; font-size:12.5px; color:var(--ink);
+  padding:9px 12px; border:none; border-bottom:1px solid var(--line);
+  background:var(--card-soft);
+}
+.cat-selector-filter:focus{outline:none}
+.cat-selector-list{max-height:280px; overflow-y:auto; padding:4px}
+.cat-selector-option{
+  display:block; width:100%; text-align:left;
+  font:inherit; cursor:pointer; padding:7px 10px;
+  border:none; background:transparent; border-radius:7px;
+  transition:background .1s;
+}
+.cat-selector-option:hover{background:color-mix(in srgb,var(--accent) 9%, transparent)}
+.cat-selector-option:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.cat-selector-option.selected{background:color-mix(in srgb,var(--accent) 16%, transparent)}
+.cat-selector-name{font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:baseline; gap:8px}
+.cat-selector-name .cat-code{font-size:10.5px; font-weight:600; color:var(--muted)}
+.cat-level-badge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:1px 7px;border-radius:99px;border:1px solid currentColor;line-height:1.5}
+.cat-level-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.cat-level-national{color:#4e80ee;background:color-mix(in srgb,#4e80ee 10%,transparent)}
+.cat-level-regional{color:#2bb3a3;background:color-mix(in srgb,#2bb3a3 12%,transparent)}
+.cat-level-departemental{color:#b98a2e;background:color-mix(in srgb,#b98a2e 14%,transparent)}
+.cat-level-uec{color:#9a6ff0;background:color-mix(in srgb,#9a6ff0 12%,transparent)}
+.cat-level-uci{color:#e06b8a;background:color-mix(in srgb,#e06b8a 12%,transparent)}
+.cat-selector-empty{padding:10px; font-size:12.5px; color:var(--muted)}
 .btn{
   font:inherit; font-size:13px; font-weight:700; cursor:pointer;
   padding:9px 16px; border-radius:10px; border:1px solid var(--line);
@@ -173,6 +221,7 @@ footer a:hover{text-decoration:underline}
   .topbar h1{font-size:26px}
   main{padding:0 16px 24px}
   input.control{width:100%}
+  .cat-selector{width:100%}
   .field{flex:1 1 140px}
 }
 </style>
@@ -214,7 +263,17 @@ footer a:hover{text-decoration:underline}
       </div>
       <div class="field">
         <label for="catSel">Catégorie</label>
-        <select class="control" id="catSel"><option value="">Toutes</option></select>
+        <div class="cat-selector">
+          <button type="button" class="cat-selector-summary" id="catSel" aria-expanded="false" aria-controls="catSelPanel" aria-haspopup="listbox">
+            <span id="catSelValue">Toutes</span>
+            <span class="cat-selector-chev" aria-hidden="true">▾</span>
+          </button>
+          <div class="cat-selector-panel" id="catSelPanel" hidden>
+            <input type="search" id="catSelFilter" class="cat-selector-filter" placeholder="Filtrer les catégories…" autocomplete="off" aria-label="Filtrer les catégories">
+            <div class="cat-selector-list" id="catSelList" role="listbox" aria-label="Catégories"></div>
+            <div class="cat-selector-empty" id="catSelEmpty" hidden>Aucune catégorie trouvée.</div>
+          </div>
+        </div>
       </div>
       <div class="field">
         <label for="sexeSel">Sexe</label>
@@ -385,7 +444,7 @@ footer a:hover{text-decoration:underline}
       return;
     }
     fillCatSel();
-    if (!state.cat || ![...catSel.options].some(o => o.value === state.cat)) state.cat = '';
+    if (!state.cat || !catCodes.includes(state.cat)) state.cat = '';
     syncInputs();
   }
 
@@ -486,6 +545,12 @@ footer a:hover{text-decoration:underline}
   let suggList = [];
   let suggIdx = -1;
   const catSel = document.getElementById('catSel');
+  const catSelValue = document.getElementById('catSelValue');
+  const catSelPanel = document.getElementById('catSelPanel');
+  const catSelFilter = document.getElementById('catSelFilter');
+  const catSelList = document.getElementById('catSelList');
+  const catSelEmpty = document.getElementById('catSelEmpty');
+  let catCodes = []; // codes de catégorie triés (niveau, puis alpha)
   const sexeSel = document.getElementById('sexeSel');
   const ageSel = document.getElementById('ageSel');
   const clubInp = document.getElementById('clubInp');
@@ -659,31 +724,75 @@ footer a:hover{text-decoration:underline}
   }
 
   function syncInputs() {
-    qInp.value = state.q; catSel.value = state.cat; sexeSel.value = state.sexe; ageSel.value = state.age;
+    qInp.value = state.q; catSelValue.innerHTML = catCaption(state.cat); sexeSel.value = state.sexe; ageSel.value = state.age;
     clubInp.value = state.clubQ;
     minSel.value = String(state.min);
+    paintCatSel();
   }
-  // Liste des catégories du classement, préfixées du niveau (National / Régional / UEC / UCI…).
+  // Libellé (avec vignette de niveau) affiché dans le bouton du sélecteur.
+  function catCaption(code) {
+    if (!DATA || !code) return 'Toutes';
+    const catNames = DATA.cats || {};
+    const lvl = refLevelFor(code);
+    const badge = lvl ? ` <span class="cat-level-badge cat-level-${lvl}">${escape(REF_LEVEL_LABELS[lvl] || lvl)}</span>` : '';
+    return escape(catNames[code] || code) + (lvl ? badge : '');
+  }
+  // Liste des catégories du classement, triées par niveau puis alphabétiquement.
   function fillCatSel() {
     if (!DATA) return;
     const lvlOrder = { departemental: 0, regional: 1, national: 2, uec: 3, uci: 4 };
-    const cats = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))];
-    cats.sort((a, b) => {
+    catCodes = [...new Set(DATA.rows.map(r => r.cat).filter(Boolean))];
+    catCodes.sort((a, b) => {
       const la = refLevelFor(a) in lvlOrder ? lvlOrder[refLevelFor(a)] : 99;
       const lb = refLevelFor(b) in lvlOrder ? lvlOrder[refLevelFor(b)] : 99;
       if (la !== lb) return la - lb;
       return a.localeCompare(b, 'fr', { sensitivity: 'base' });
     });
-    const catNames = DATA.cats || {};
-    const opts = cats.map(c => {
-      const lvl = refLevelFor(c);
-      const prefix = lvl ? (REF_LEVEL_LABELS[lvl] || lvl) + ' · ' : '';
-      return `<option value="${escape(c)}">${escape(prefix + (catNames[c] || c))}</option>`;
-    });
-    catSel.innerHTML = '<option value="">Toutes</option>' + opts.join('');
+    paintCatSel();
+  }
+  function paintCatSel() {
+    const catNames = (DATA && DATA.cats) || {};
+    const q = (catSelFilter.value || '').trim();
+    const nq = norm(q);
+    const matches = nq
+      ? catCodes.filter(c => {
+          const hay = ((catNames[c] || '') + ' ' + c + ' ' + (REF_LEVEL_LABELS[refLevelFor(c)] || '')).toLowerCase();
+          return hay.includes(nq);
+        })
+      : catCodes;
+    catSelList.innerHTML = '<button type="button" class="cat-selector-option" role="option" data-code=""' +
+      (state.cat === '' ? ' aria-selected="true"' : '') + '><span class="cat-selector-name">Toutes</span></button>' +
+      matches.map(c => {
+        const lvl = refLevelFor(c);
+        const badge = lvl ? ` <span class="cat-level-badge cat-level-${lvl}">${escape(REF_LEVEL_LABELS[lvl] || lvl)}</span>` : '';
+        const sel = c === state.cat;
+        return `<button type="button" class="cat-selector-option${sel ? ' selected' : ''}" role="option" data-code="${escape(c)}"${sel ? ' aria-selected="true"' : ''}>` +
+          `<span class="cat-selector-name"><span>${escape(catNames[c] || c)}</span> <span class="cat-code">(${escape(c)})</span>${badge}</span></button>`;
+      }).join('');
+    catSelEmpty.hidden = matches.length > 0;
+  }
+  function openCatSel() {
+    catSelFilter.value = '';
+    paintCatSel();
+    catSelPanel.hidden = false;
+    catSel.setAttribute('aria-expanded', 'true');
+    catSelFilter.focus();
+  }
+  function closeCatSel() {
+    catSelPanel.hidden = true;
+    catSel.setAttribute('aria-expanded', 'false');
+  }
+  function selectCat(code) {
+    state.cat = code;
+    catSelValue.innerHTML = catCaption(code);
+    closeCatSel();
+    paintCatSel();
+    readInputs();
+    pushUrlState();
+    render();
   }
   function readInputs() {
-    state.q = qInp.value; state.cat = catSel.value; state.sexe = sexeSel.value; state.age = ageSel.value;
+    state.q = qInp.value; state.sexe = sexeSel.value; state.age = ageSel.value;
     state.clubQ = clubInp.value;
     state.min = parseInt(minSel.value, 10) || 5;
     shown = PAGE;
@@ -797,7 +906,21 @@ footer a:hover{text-decoration:underline}
     clearTimeout(debounce);
     debounce = setTimeout(() => { readInputs(); pushUrlState(); render(); }, 150);
   });
-  catSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
+  catSel.addEventListener('click', () => { if (catSelPanel.hidden) openCatSel(); else closeCatSel(); });
+  catSel.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); catSel.click(); }
+  });
+  catSelFilter.addEventListener('input', paintCatSel);
+  catSelFilter.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); closeCatSel(); }
+  });
+  catSelList.addEventListener('click', e => {
+    const btn = e.target.closest('.cat-selector-option');
+    if (btn) selectCat(btn.dataset.code || '');
+  });
+  document.addEventListener('click', e => {
+    if (!catSelPanel.hidden && !e.target.closest('.cat-selector')) closeCatSel();
+  });
   sexeSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   ageSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
   minSel.addEventListener('change', () => { readInputs(); pushUrlState(); render(); });
