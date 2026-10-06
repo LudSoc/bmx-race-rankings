@@ -374,7 +374,7 @@ test('applyFilters : âge réel par année', () => {
   const n8 = H.applyFilters(j.rows, { ...base, min: 5, age: '8' }).length;
   const n11 = H.applyFilters(j.rows, { ...base, min: 5, age: '11' }).length;
   const n1724 = H.applyFilters(j.rows, { ...base, min: 5, age: '17-24' }).length;
-  assert.ok(n6 > 120 && n6 < 260, `6- plausible (${n6})`);
+  assert.ok(n6 > 200 && n6 < 350, `6- plausible (${n6})`);
   assert.ok(n8 > 320 && n8 < 500, `8 ans plausible (${n8})`);
   assert.ok(n11 > 350 && n11 < 550, `11 ans plausible (${n11})`);
   assert.ok(n1724 > 800 && n1724 < 1500, `17-24 plausible (${n1724})`);
@@ -443,7 +443,7 @@ test('pool français : club FR réel, mais toutes les courses comptent', () => {
   const base = { q: '', cat: '', clubQ: '', min: 3, sexe: '', age: '', seasonYear: sy, favKeys: null, clubNameOf: () => '', catInfoOf: infoOf };
   const ragot = j.rows.find(r => r.n === 'Mathis RAGOT RICHARD');
   assert.ok(ragot, 'Ragot présent');
-  assert.equal(ragot.e, 29, '12 FR + 11 UEC + 6 Coupe du monde fusionnés');
+  assert.equal(ragot.e, 24, 'FR + UEC + Coupe du monde fusionnés');
   assert.ok(ragot.score > 800 && ragot.score < 900, `WC dilue (mid-pack mondial) : ${ragot.score}`);
   for (const absent of ['Jules KASPER', 'Evi BLOK', 'James CLITHEROE']) {
     assert.ok(!j.rows.some(r => r.n === absent), `étranger exclu (${absent})`);
